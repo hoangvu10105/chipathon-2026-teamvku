@@ -65,6 +65,9 @@ module sfe_encoder_bank #(
     logic [THETA_WIDTH-1:0]       cfg_theta_init_buf  [0:NUM_CHANNELS-1];
     logic [REFRACTORY_WIDTH-1:0]  cfg_refractory_len_buf [0:NUM_CHANNELS-1];
     
+    // Forward declaration for decay_tick (used by buffer tree before block assignment)
+    logic                        decay_tick;
+
     // Buffer trees for 1-bit signals
     sfe_fanout_buffer #(.FANOUT(NUM_CHANNELS), .MAX_FANOUT(MAX_FANOUT)) u_buf_en                 (.in(en),                    .out(en_buf));
     sfe_fanout_buffer #(.FANOUT(NUM_CHANNELS), .MAX_FANOUT(MAX_FANOUT)) u_buf_rst_n             (.in(rst_n),                 .out(rst_n_buf));
@@ -112,7 +115,7 @@ module sfe_encoder_bank #(
     // Decay tick generator (unchanged logic)
     // ============================================================
     logic [DECAY_TICK_WIDTH-1:0] decay_counter_q;
-    logic                        decay_tick;
+    // decay_tick forward-declared above
 
     assign decay_tick = !cfg_enable_decay_tick ||
                         ((decay_counter_q & cfg_decay_tick_mask) == cfg_decay_tick_mask);
