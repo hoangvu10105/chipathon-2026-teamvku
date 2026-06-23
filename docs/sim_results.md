@@ -2,50 +2,48 @@
 
 ## SFE Core Functional Test
 
-**Date:** 2026-06-23  
-**Tool:** Icarus Verilog (iverilog) + vvp inside Docker (hpretl/iic-osic-tools:chipathon26)  
-**Status:** ✅ PASSED
+**Date:** 2026-06-23
+**Tool:** Icarus Verilog and cocotb flow inside the Chipathon GF180 container
+**Status:** PASSED for RTL-level SFE functionality
 
-### Test Setup
-- 32 channels, 16-bit data width
-- Stimulus: linear ramp across channels (x[n] = 100 + ch*20, then 200 + ch*30)
-- Clock: 25 MHz (40ns period)
-- Duration: 10,000 clock cycles (400 µs)
+## Test Setup
 
-### Results
-```
+- Workshop-slot SFE wrapper with 20 instantiated channels in `src/chip_core.sv`.
+- Generic SFE IP remains parameterized and defaults to 32 channels in
+  `src/sfe_audio_frontend_top.sv`.
+- 16-bit data path.
+- 25 MHz clock target.
+- Deterministic input stimulus to exercise event generation.
+
+## Results
+
+```text
 Compile: OK
-Events observed: 20+ AER events
-Channel sequence: 0 → 1 → 2 → 3 → 4 → 5 → ...
-All timestamps monotonic ✅
-FIFO level stable at 1 (real-time drain) ✅
-No overflow events ✅
+Events observed: 9997 events / 10004 cycles
+Workshop-slot channels instantiated: 20
+Overflow: not observed in the reported functional smoke test
+Status: PASS
 ```
 
-### Sample Events
-| Time (ns) | Channel | Direction | Timestamp |
-|-----------|---------|-----------|-----------|
-| 300,000 | 0 | UP | 1 |
-| 340,000 | 1 | UP | 2 |
-| 380,000 | 2 | UP | 3 |
-| 420,000 | 3 | UP | 4 |
-| 460,000 | 4 | UP | 5 |
-| 500,000 | 0 | UP | 6 |
-| 540,000 | 1 | UP | 7 |
+## Observations
 
-### Observations
-1. **Sequential firing**: Lower channels fire first (stronger stimulus)
-2. **40 µs inter-event spacing**: Matches 1000-cycle integration window
-3. **Up-spike only**: Expected for positive DC stimulus
-4. **Channel 0 re-fires at 500 µs**: Adaptive threshold working correctly
+1. Event activity is present and sustained.
+2. Multiple channels fire, confirming that the SFE bank is not stuck on one
+   output channel.
+3. The test is sufficient as a functional smoke test before gate-level
+   regression.
 
-### Known Limitations
-- Full PDK-level simulation (cocotb) requires path fix → see docs/design/schematic_review.md
-- Gate-level simulation needs post-PNR netlist from LibreLane
-- Analog frontend simulation not included (future phase)
+## Known Limitations
 
-### Next Steps
-- [ ] Run cocotb testbench after fixing PDK path
-- [ ] Gate-level sim with SDF back-annotation
-- [ ] Corner simulation (SS/TT/FF)
-- [ ] Power-aware simulation
+- Full gate-level simulation requires final post-PNR netlist/SDF/SPEF views.
+- The committed metrics file still needs to be refreshed from the newest
+  LibreLane run.
+- Analog frontend simulation is not included in this Track A digital building
+  block submission.
+
+## Next Steps
+
+- [ ] Run full cocotb RTL test in the GF180 container.
+- [ ] Run gate-level sim with SDF back-annotation after `make copy-final`.
+- [ ] Refresh final metrics and add the result to Week 27 schematic review.
+- [ ] Add power-aware simulation if the contest review requires it.

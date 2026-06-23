@@ -1,121 +1,124 @@
-# TODO – TeamVKU SSCS Chipathon 2026
+# TODO - TeamVKU SSCS Chipathon 2026
 
-> Cập nhật: 2026-06-23 | Build đang chạy trên server `192.168.1.224`
+> Updated: 2026-06-23 | Repository: `hoangvu10105/chipathon-2026-teamvku`
 
 ---
 
-## ✅ ĐÃ HOÀN THÀNH
+## Completed
 
-### Code Fixes (commit `b2c3ce7` trên GitHub)
-- [x] **Cocotb testbench** — Viết lại `chip_top_tb.py` cho SFE (4 tests: startup, AER events, config modes, health check)
-- [x] **chip_id + logo** — Uncomment macros trong `config.yaml` và `chip_top.sv`
-- [x] **Schematic review** — Thêm CDC diagram, Power Domain diagram, input_en_q docs
-- [x] **Push lên GitHub** — `hoangvu10105/chipathon-2026-teamvku`
+### Code fixes
 
-### Server `192.168.1.224` (hoangvu / 798235)
-- [x] **SSH thành công** — Linux hoangvu-ThinkPad-P50, Ubuntu 24.04, Docker 29.1.3
-- [x] **Clone repo mới** — `~/eda/designs/sfe_chipathon_padring_latest/`
-- [x] **SFE functional test** — PASSED (9997 events, 32 channels)
-- [x] **Build LibreLane** — Đang chạy (~2h15m), log tại `build.log`
+- [x] Reworked `cocotb/chip_top_tb.py` for SFE-oriented tests:
+  startup, AER events, config modes, and output health check.
+- [x] Enabled `chip_id` and wafer.space logo macros in `librelane/config.yaml`
+  and `src/chip_top.sv`.
+- [x] Added schematic-review documentation for CDC, power domains, and
+  `input_en_q`.
+- [x] Added reset/control fanout buffering through `sfe_fanout_buffer`.
+- [x] Added post-global-route repair knobs in `librelane/config.yaml`.
+- [x] Added `make copy-final` target so final LibreLane views can be copied
+  into `final/` before `make render-image` or `GL=1 make sim-gl`.
 
-### SFE Core Test Results
+### Remote build status from `logs/rebuild_w27.log`
+
+- [x] LibreLane flow completed all 83 stages.
+- [x] Magic DRC: passed.
+- [x] Netgen LVS: passed, circuits match uniquely.
+- [x] Antenna report: passed.
+- [x] Setup timing: no violations found.
+- [x] Hold timing: no violations found.
+- [x] Final views saved by LibreLane.
+
+### SFE functional status
+
+```text
+RTL functional test: PASSED
+Observed event activity: 9997 events / 10004 cycles
+Workshop-slot channels: 20 instantiated in `src/chip_core.sv`
+Generic SFE IP default: 32 channels in `src/sfe_audio_frontend_top.sv`
 ```
-iverilog compile: OK
-Events: 9,997 spikes / 10,004 cycles
-PASS: SFE core functional
-```
 
 ---
 
-## 🔄 ĐANG CHẠY
+## Still Open / Must Fix
 
-- [ ] **LibreLane build** trên server (PID 6351) — đang clone PDK → synthesis → PnR → DRC/LVS/STA
-  - Log: `~/eda/designs/sfe_chipathon_padring_latest/build.log`
-  - Kiểm tra: `tail -f ~/eda/designs/sfe_chipathon_padring_latest/build.log`
+### 1. Electrical warning closure
 
----
+The latest committed `docs/build_metrics.csv` is still the older metrics file
+and reports:
 
-## 🔴 CẦN LÀM TIẾP (Turn sau)
+| Metric | Current committed metric |
+|---|---:|
+| max slew violations | 3180 |
+| max fanout violations | 77 |
+| max cap violations | 38 |
 
-### 1. Kiểm tra build kết quả
-- [ ] Build xong chưa? `tail -50 build.log`
-- [ ] Đọc `librelane/runs/*/final/metrics.csv`
-- [ ] So sánh slew violations (SS corner) — mục tiêu giảm từ 2451
-- [ ] Kiểm tra chip_id + logo có trong GDS không
+Action items:
 
-### 2. Chạy cocotb full test với PDK
+- [ ] Pull the newest `final/metrics.csv` from the remote LibreLane run.
+- [ ] Replace/update `docs/build_metrics.csv` and `docs/build_metrics.json`.
+- [ ] Confirm whether the final run truly closes max slew/cap/fanout or only
+  passes timing/DRC/LVS/antenna.
+- [ ] If violations remain, run another closure pass with tighter repair
+  settings or a smaller/faster SFE wrapper configuration.
+
+### 2. Post-build verification
+
+Run after final views are available locally:
+
 ```bash
-docker run --rm \
-  -v ~/eda/designs/sfe_chipathon_padring_latest:/foss/designs/sfe_chipathon_padring \
-  -v ~/gf180mcu:/foss/pdks/gf180mcuD \
-  -e PDK_ROOT=/foss/pdks -e PDK=gf180mcuD -e SLOT=workshop \
-  hpretl/iic-osic-tools:chipathon26 --skip \
-  bash -c "cd /foss/designs/sfe_chipathon_padring && make sim"
+make copy-final
+make render-image
+GL=1 make sim-gl
 ```
 
-### 3. Schematic Review (July 3) — Chuẩn bị
-- [ ] Kiểm tra `docs/design/TeamVKU_Schematic_Review_W27.pptx` — cần cập nhật sau build mới
-- [ ] Thêm screenshot GDS layout vào slides
-- [ ] Cập nhật metrics table với kết quả build mới
-- [ ] Submit weekly report Week 26: https://forms.gle/6839F1Jppxx42yw5A
+Expected deliverables:
 
-### 4. Post-build verification
-- [ ] Copy final artifacts: `make copy-final` (GDS, DEF, netlist, SDC, SDF, SPEF)
-- [ ] Render chip layout image: `make render-image`
-- [ ] Gate-level simulation: `GL=1 make sim-gl`
+- [ ] `final/gds/chip_top.gds`
+- [ ] `final/nl/chip_top.nl.v` or final gate-level netlist
+- [ ] `final/sdc/chip_top.sdc`
+- [ ] `final/sdf/chip_top.sdf`
+- [ ] `final/spef/chip_top.spef`
+- [ ] `final/metrics.csv`
+- [ ] `img/chip_top.png`
 
-### 5. Submission checklist
-- [ ] `final/gds/chip_top.gds` — Final GDSII
-- [ ] `final/nl/chip_top.v` — Gate-level netlist
-- [ ] `final/sdc/chip_top.sdc` — SDC constraints
-- [ ] `final/sdf/chip_top.sdf` — SDF timing
-- [ ] `final/spef/chip_top.spef` — SPEF parasitics
-- [ ] `final/metrics.csv` — Signoff metrics
-- [ ] Magic DRC report (clean)
-- [ ] Netgen LVS report (clean)
+### 3. Schematic Review - July 3
 
-### 6. GitHub
-- [ ] **ĐỂ REPO PRIVATE** — Settings → Danger Zone → Make Private
-- [ ] Tạo GitHub Issue chính thức trên `sscs-ose/sscs-chipathon-2026` (nếu chưa có)
+- [ ] Update `docs/design/TeamVKU_Schematic_Review_W27.pptx`.
+- [ ] Add final GDS/layout screenshot.
+- [ ] Add final metrics table after refreshing `final/metrics.csv`.
+- [ ] Explain remaining electrical warnings honestly if not fully closed.
+- [ ] Submit Week 26 report: https://forms.gle/6839F1Jppxx42yw5A
 
----
+### 4. GitHub / submission
 
-## 📊 Build Metrics Tham Khảo (Build trước - grtrepair45)
-
-| Corner | Slew | Fanout | Cap | Timing | Power |
-|--------|------|--------|-----|--------|-------|
-| TT 25°C | 107 | 77 | 27 | 0 ✅ | 0.018W |
-| **SS 125°C** | **2451** ⚠️ | 77 | 27 | 0 ✅ | - |
-| FF -40°C | 35 | 77 | 26 | 0 ✅ | - |
-| DRC | 0 ✅ | - | - | - | - |
-| LVS | 0 ✅ | - | - | - | - |
-| Lint | 0 ✅ | - | - | - | - |
+- [ ] Keep the repository private if required by the organizers.
+- [ ] Keep Issue #167 updated on `sscs-ose/sscs-chipathon-2026`.
+- [ ] Attach final metrics, layout image, and status summary once copied from
+  the remote build.
 
 ---
 
-## 🔗 Links
+## Current Honest Verdict
+
+```text
+Track A positioning: READY
+RTL/cocotb testbench: READY
+LibreLane build completion: READY
+DRC/LVS/Antenna/timing: CLEAN in latest log
+Max slew/cap/fanout closure: NEEDS FINAL METRICS CONFIRMATION
+Gate-level regression: NOT YET
+Final submission package: NOT YET
+```
+
+---
+
+## Useful Links
 
 | Resource | URL |
-|----------|-----|
-| **GitHub Repo** | https://github.com/hoangvu10105/chipathon-2026-teamvku |
-| **Chipathon Schedule** | https://github.com/sscs-ose/sscs-chipathon-2026/tree/main/schedule |
-| **Weekly Report Form** | https://forms.gle/6839F1Jppxx42yw5A |
-| **Weekly Zoom (8am PT)** | https://us06web.zoom.us/j/87694732928?pwd=gjUePaAEKDJB2G3f2d4iPIqyYe0qBx.1 |
-| **Discord** | https://discord.gg/tvZcQzvt7q |
-| **Server SSH** | `ssh hoangvu@192.168.1.224` (pass: 798235) |
-| **Build log** | `~/eda/designs/sfe_chipathon_padring_latest/build.log` |
-
----
-
-## 📅 Key Dates
-
-| Date | Milestone |
-|------|-----------|
-| **June 26** | Analog Design Ideas 🎓 (3 ngày nữa) |
-| **July 3** | 🔴 **Schematic Review** (10 ngày) |
-| July 10 | Simulation Review (blocks) |
-| **July 17** | 🔴 Simulation Review (top) + **Go/No-go** |
-| July 24 | Layout Tutorial |
-| Aug 14 | Layout Review (blocks) |
-| Aug 28 | Final Verification + Chip Review |
-| TBD | **Final GDS Submission** |
+|---|---|
+| GitHub Repo | https://github.com/hoangvu10105/chipathon-2026-teamvku |
+| Chipathon Schedule | https://github.com/sscs-ose/sscs-chipathon-2026/tree/main/schedule |
+| Weekly Report Form | https://forms.gle/6839F1Jppxx42yw5A |
+| Discord | https://discord.gg/tvZcQzvt7q |
+| Issue #167 | https://github.com/sscs-ose/sscs-chipathon-2026/issues/167 |

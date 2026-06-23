@@ -2,8 +2,8 @@
 
 ## Track A: Foundational Building Blocks – Spiking Frequency Encoder Bank
 
-> **Target Process:** GF180MCU (GlobalFoundries 180nm)  
-> **Slot:** Workshop (2935×2935 µm die, 2051×2051 µm core)  
+> **Target Process:** GF180MCU (GlobalFoundries 180nm)
+> **Slot:** Workshop (2935×2935 µm die, 2051×2051 µm core)
 > **Tool Flow:** LibreLane 3.0 (RTL → GDS)
 
 ---
@@ -47,11 +47,11 @@
 
 ## Block Specifications
 
-### 1. `sfe_encoder_bank` — 32-Channel Spiking Encoder
+### 1. `sfe_encoder_bank` — Parameterized Spiking Encoder
 
 | Parameter | Value | Description |
 |-----------|-------|-------------|
-| NUM_CHANNELS | 32 | Frequency channels (filterbank) |
+| NUM_CHANNELS | 32 default, 20 in workshop `chip_core` | Frequency channels / sampled feature lanes |
 | DATA_WIDTH | 16 | Input sample width per channel |
 | THETA_WIDTH | 16 | Adaptive threshold width |
 | LEAK_SHIFT | 4 | Leakage decay rate (>>4 = /16) |
@@ -66,7 +66,7 @@
 - ✅ Adaptive threshold (theta): auto-adjusts per channel
 - ✅ Leakage: membrane potential decay
 - ✅ Refractory period: prevents burst firing
-- ✅ Fanout buffer tree: eliminates max_fanout violations (32×1-bit + multi-bit control)
+- ✅ Fanout buffer tree for high-fanout control signals
 - ✅ Configurable per-channel enable
 - ✅ Spike output: up/down per channel (rate-coded frequency)
 
@@ -83,8 +83,8 @@ Each channel implements:
 
 | Parameter | Value | Description |
 |-----------|-------|-------------|
-| NUM_CHANNELS | 32 | Input spike channels |
-| CH_WIDTH | 5 | Channel address width (log2(32)) |
+| NUM_CHANNELS | Parameterized | Input spike channels |
+| CH_WIDTH | Derived | Channel address width |
 | TIMESTAMP_WIDTH | 32 | Event timestamp width |
 | FIFO_DEPTH | 16 | Output event FIFO depth |
 
@@ -118,11 +118,9 @@ Maps the SFE frontend to the workshop padring:
 | **Total Power** | 0.018 W |
 | **Setup Violations** | 0 |
 | **Hold Violations** | 0 |
-| **Max Slew Violations** | 106 (TT) / 2470 (SS) |
-| **Max Fanout Violations** | 65 |
-| **Max Cap Violations** | 22 |
+| **Max Slew/Cap/Fanout** | Needs final `metrics.csv` refresh |
 
-> ⚠️ Slew violations at SS corner (125°C, 4.5V) need attention before tapeout.
+> Note: latest log reports clean DRC/LVS/antenna and no setup/hold violations; refresh final metrics before claiming electrical DRV closure.
 
 ---
 
@@ -131,7 +129,7 @@ Maps the SFE frontend to the workshop padring:
 | File | Description |
 |------|-------------|
 | `src/sfe_audio_frontend_top.sv` | Top-level wrapper: encoder bank + packetizer |
-| `src/sfe_encoder_bank.sv` | 32-channel encoder with fanout buffers |
+| `src/sfe_encoder_bank.sv` | Parameterized encoder bank with fanout buffers |
 | `src/sfe_channel.sv` | Single spiking frequency encoder channel |
 | `src/sfe_event_packetizer.sv` | AER event packer with FIFO |
 | `src/sfe_fanout_buffer.sv` | Fanout buffer tree (max 10 loads per buffer) |

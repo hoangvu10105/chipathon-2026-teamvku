@@ -12,11 +12,11 @@
 
 This repository contains the **TeamVKU** submission for the **IEEE SSCS Chipathon 2026**, competing in **Track A: Foundational Building Blocks**.
 
-Our project is an **SFE (Spiking Frequency Encoder) Audio Frontend** — a neuromorphic mixed-signal IP block that converts audio input into sparse spike-event streams using 32 parallel frequency-encoding channels. The design targets the **GF180MCU** open-source process and uses the **LibreLane 3.0** automated RTL-to-GDS flow.
+Our project is an **SFE (Spiking Frequency Encoder) Audio Frontend** — a neuromorphic Track-A building block that converts sampled feature streams into sparse spike-event streams. The generic SFE IP defaults to 32 frequency-encoding channels; the current Chipathon workshop-slot wrapper instantiates 20 channels to fit the available pad/status interface. The design targets the **GF180MCU** open-source process and uses the **LibreLane 3.0** automated RTL-to-GDS flow.
 
 ### 🔬 What is SFE?
 
-The Spiking Frequency Encoder is a bio-inspired neural encoding scheme. Each of the 32 channels acts as an adaptive spiking neuron with:
+The Spiking Frequency Encoder is a bio-inspired neural encoding scheme. Each instantiated channel acts as an adaptive spiking neuron with:
 - **Leaky integrate-and-fire dynamics** with configurable threshold
 - **Frequency-selective encoding** across 32 spectral bands
 - **Adaptive threshold** (theta) that self-tunes between min/max bounds
@@ -60,7 +60,7 @@ The Spiking Frequency Encoder is a bio-inspired neural encoding scheme. Each of 
 
 | Parameter | Value |
 |-----------|-------|
-| **Channels** | 32 |
+| **Channels** | Generic IP default: 32; workshop-slot build: 20 |
 | **Data width per channel** | 16 bit |
 | **Threshold (theta) range** | 16 – 1024 (16-bit) |
 | **Default theta** | 32 |
@@ -104,7 +104,7 @@ The Spiking Frequency Encoder is a bio-inspired neural encoding scheme. Each of 
 │   └── SFE_ADAPTER_NOTES.md          # Integration notes
 ├── src/
 │   ├── sfe_audio_frontend_top.sv     # Top-level SFE wrapper
-│   ├── sfe_encoder_bank.sv           # 32-channel encoder bank ★
+│   ├── sfe_encoder_bank.sv           # Parameterized encoder bank ★
 │   ├── sfe_channel.sv                # Single SFE channel (neuron)
 │   ├── sfe_event_packetizer.sv       # AER event packer + FIFO
 │   ├── sfe_fanout_buffer.sv          # Fanout buffer tree
