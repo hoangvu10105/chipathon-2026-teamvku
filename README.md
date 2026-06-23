@@ -2,7 +2,7 @@
 
 > **[Track A] SFE Audio Frontend – Spiking Frequency Encoder Bank**
 
-**Team Lead:** Hoang Vu | **Team Code:** *(pending assignment)*
+**Team Lead:** Hoang Vu | **Team Code:** *(pending assignment)* | **[Issue #167](https://github.com/sscs-ose/sscs-chipathon-2026/issues/167)** ✅
 
 **GitHub:** https://github.com/hoangvu10105/chipathon-2026-teamvku
 
