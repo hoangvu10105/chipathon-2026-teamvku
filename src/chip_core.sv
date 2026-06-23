@@ -42,6 +42,7 @@ module chip_core #(
 
     logic rst_meta_n;
     logic rst_core_n;
+    logic rst_core_buf_n;  // Buffered reset for high-fanout SFE
     logic run_en_q;
     logic fixed_threshold_q;
     logic decay_tick_2_q;
@@ -124,6 +125,20 @@ module chip_core #(
         end
     end
 
+    // ────────────────────────────────────────────────────────
+    // Reset buffer tree: rst_core_n fans out to >800 loads
+    // inside the SFE, causing max_slew violations at SS corner.
+    // sfe_fanout_buffer limits fanout to MAX_FANOUT per stage
+    // so synthesis can insert proper buffering.
+    // ────────────────────────────────────────────────────────
+    sfe_fanout_buffer #(
+        .FANOUT(32),     // 32 loads: 20 channels + internal
+        .MAX_FANOUT(10)
+    ) u_rst_buf (
+        .in(rst_core_n),
+        .out(rst_core_buf_n)
+    );
+
     sfe_audio_frontend_top #(
         .NUM_CHANNELS(NUM_CHANNELS),
         .DATA_WIDTH(DATA_WIDTH),
@@ -131,7 +146,7 @@ module chip_core #(
         .REFRACTORY_LEN(4)
     ) u_sfe (
         .clk(clk),
-        .rst_n(rst_core_n),
+        .rst_n(rst_core_buf_n),
         .en(core_en),
         .channel_en({NUM_CHANNELS{1'b1}}),
         .cfg_enable_adaptive(~fixed_threshold_q),
