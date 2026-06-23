@@ -40,11 +40,19 @@ module sfe_channel #(
     logic        [THETA_WIDTH-1:0]     theta_q;
     logic        [REFRACTORY_WIDTH-1:0] refractory_q;
 
+    // Pipeline: fire decision registered for one cycle to break the
+    // combinational path x_in -> delta -> compare -> sat_add -> v_ref_q.
+    // Stage 1 (combinational): delta, fire_up, fire_down.
+    // Stage 2 (registered):    fire_up_pipe, fire_down_pipe -> state update.
+    // Spike output is delayed by 1 cycle (still correct for AER protocol).
     logic signed [DELTA_WIDTH-1:0] delta;
     logic signed [DELTA_WIDTH-1:0] theta_signed;
     logic                         can_fire;
     logic                         fire_up;
     logic                         fire_down;
+    logic                         fire_up_pipe;
+    logic                         fire_down_pipe;
+    logic [THETA_WIDTH-1:0]       theta_pipe;
 
     assign delta        = $signed({x_in[DATA_WIDTH-1], x_in}) -
                           $signed({v_ref_q[REF_WIDTH-1], v_ref_q});
@@ -56,28 +64,41 @@ module sfe_channel #(
 
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            spike_up     <= 1'b0;
-            spike_down   <= 1'b0;
-            v_ref_q      <= '0;
-            theta_q      <= THETA_INIT;
-            refractory_q <= '0;
+            spike_up       <= 1'b0;
+            spike_down     <= 1'b0;
+            v_ref_q        <= '0;
+            theta_q        <= THETA_INIT;
+            refractory_q   <= '0;
+            fire_up_pipe   <= 1'b0;
+            fire_down_pipe <= 1'b0;
+            theta_pipe     <= THETA_INIT;
         end else begin
             spike_up   <= 1'b0;
             spike_down <= 1'b0;
 
+            // Stage 1: register fire decision for next-cycle update.
+            // Gate with en && channel_en so a stale fire is not
+            // replayed after a disable/enable toggle.
+            fire_up_pipe   <= fire_up && en && channel_en;
+            fire_down_pipe <= fire_down && en && channel_en;
+            theta_pipe     <= theta_q;
+
             if (cfg_load) begin
-                v_ref_q      <= '0;
-                theta_q      <= cfg_theta_init;
-                refractory_q <= '0;
+                v_ref_q        <= '0;
+                theta_q        <= cfg_theta_init;
+                refractory_q   <= '0;
+                fire_up_pipe   <= 1'b0;
+                fire_down_pipe <= 1'b0;
             end else if (en && channel_en) begin
-                if (fire_up) begin
+                // Stage 2: apply state updates from pipelined fire decision
+                if (fire_up_pipe) begin
                     spike_up     <= 1'b1;
-                    v_ref_q      <= sat_add_ref(v_ref_q, theta_q);
+                    v_ref_q      <= sat_add_ref(v_ref_q, theta_pipe);
                     theta_q      <= cfg_enable_adaptive ? theta_inc(theta_q) : theta_q;
                     refractory_q <= cfg_enable_refractory ? cfg_refractory_len : '0;
-                end else if (fire_down) begin
+                end else if (fire_down_pipe) begin
                     spike_down   <= 1'b1;
-                    v_ref_q      <= sat_sub_ref(v_ref_q, theta_q);
+                    v_ref_q      <= sat_sub_ref(v_ref_q, theta_pipe);
                     theta_q      <= cfg_enable_adaptive ? theta_inc(theta_q) : theta_q;
                     refractory_q <= cfg_enable_refractory ? cfg_refractory_len : '0;
                 end else begin
@@ -89,6 +110,11 @@ module sfe_channel #(
                         refractory_q <= refractory_q - 1'b1;
                     end
                 end
+            end else begin
+                // Channel/en disabled: clear any pending fire so a spike is
+                // not emitted when re-enabled.
+                fire_up_pipe   <= 1'b0;
+                fire_down_pipe <= 1'b0;
             end
         end
     end
