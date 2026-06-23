@@ -1,6 +1,6 @@
 # TODO – TeamVKU SSCS Chipathon 2026
 
-> Cập nhật: 2026-06-23 16:56 ICT | **BUILD #5 HOÀN THÀNH** — SLEW SS: 39 (↓98.4%), DRC/LVS CLEAN!
+> Cập nhật: 2026-06-23 16:56 ICT | **BUILD #5 HOÀN THÀNH** — SLEW SS: 39 (↓98.4%), DRC/LVS CLEAN, còn 99 setup violations ở `max_ss`
 
 ---
 
@@ -15,16 +15,18 @@
 ### Server `192.168.1.224` (hoangvu / 798235)
 - [x] **SSH thành công** — Linux hoangvu-ThinkPad-P50, Ubuntu 24.04, Docker 29.1.3
 - [x] **Clone repo mới** — `~/eda/designs/sfe_chipathon_padring_latest/`
-- [x] **SFE functional test** — PASSED (9997 events, 32 channels)
+- [x] **SFE functional test** — PASSED (9997 events / 10004 cycles)
 - [x] **Fix PDK mount** — Mount `gf180mcu:/foss/pdks` (LibreLane hardcode `/foss/pdks`)
 - [x] **Fix DRT-0073** — Set `DRT_ANTENNA_REPAIR_ITERS: 0` (skip internal antenna repair)
-- [x] **Build #5 hoàn thành** — 81/83 stages, tất cả artifacts đã tạo
+- [x] **Build #5 hoàn thành** — final views/artifacts đã tạo; một số checker/signoff phụ bị skip/deferred theo cấu hình
 
 ### SFE Core Test Results
 ```
 iverilog compile: OK
 Events: 9,997 spikes / 10,004 cycles
 PASS: SFE core functional
+Generic SFE IP default: 32 channels
+Workshop-slot build: 20 channels instantiated in src/chip_core.sv
 ```
 
 ---
@@ -59,8 +61,10 @@ PASS: SFE core functional
 ## 🔴 CẦN LÀM TIẾP
 
 ### 1. Fix max_ss setup violations (99 violations)
-- [ ] Kiểm tra `--pdk-root` + `PDK=gf180mcuD` cho max corner
-- [ ] Cân nhắc tăng clock period hoặc optimize path
+- [ ] Mở timing report cho `max_ss_125C_4v50` và liệt kê top violating paths
+- [ ] Xác định lỗi nằm ở SFE core, AER packetizer, pad path, hoặc generated/reset/control path
+- [ ] Thử tăng `CLOCK_PERIOD` tạm thời để xác định biên timing cần thiết
+- [ ] Nếu vẫn muốn giữ 25 MHz, chạy thêm repair/resize hoặc giảm cấu hình workload của workshop wrapper
 - [ ] Đây là signoff corner - cần fix trước submission
 
 ### 2. Post-build verification
@@ -75,7 +79,7 @@ PASS: SFE core functional
 
 ### 4. Submission checklist
 - [x] `final/gds/chip_top.gds` — Final GDSII ✅
-- [x] `final/nl/chip_top.v` — Gate-level netlist ✅
+- [x] `final/nl/chip_top.nl.v` / `chip_top.v` — Gate-level netlist ✅
 - [x] `final/sdc/chip_top.sdc` — SDC constraints ✅
 - [x] `final/sdf/chip_top.sdf` — SDF timing ✅
 - [x] `final/spef/chip_top.spef` — SPEF parasitics ✅
@@ -85,7 +89,8 @@ PASS: SFE core functional
 
 ### 5. GitHub
 - [ ] **ĐỂ REPO PRIVATE** — Settings → Danger Zone → Make Private
-- [ ] Tạo GitHub Issue chính thức trên `sscs-ose/sscs-chipathon-2026` (nếu chưa có)
+- [x] GitHub Issue chính thức: https://github.com/sscs-ose/sscs-chipathon-2026/issues/167
+- [ ] Cập nhật Issue #167 với Build #5 metrics và phần còn lại: 99 setup violations ở `max_ss`
 
 ---
 
