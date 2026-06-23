@@ -42,7 +42,6 @@ module chip_core #(
 
     logic rst_meta_n;
     logic rst_core_n;
-    logic rst_core_buf_n;  // Buffered reset for high-fanout SFE
     logic run_en_q;
     logic fixed_threshold_q;
     logic decay_tick_2_q;
@@ -50,8 +49,9 @@ module chip_core #(
     logic input_en_q;
 
     // Keep slow pad outputs off high-fanout core control nets. The external
-    // reset remains asynchronous at the pad boundary, then releases
-    // synchronously into the SFE core.
+    // reset still clears state asynchronously, while rst_core_n is used only
+    // as a synchronized release/enable. This avoids timing the reset
+    // synchronizer output as a high-fanout reg-to-reg reset path.
     always_ff @(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
             rst_meta_n <= 1'b0;
@@ -62,14 +62,14 @@ module chip_core #(
         end
     end
 
-    always_ff @(posedge clk or negedge rst_core_n) begin
-        if (!rst_core_n) begin
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
             run_en_q <= 1'b0;
             fixed_threshold_q <= 1'b0;
             decay_tick_2_q <= 1'b0;
             disable_refractory_q <= 1'b0;
             input_en_q <= 1'b0;
-        end else begin
+        end else if (rst_core_n) begin
             run_en_q <= bidir_in[0];
             fixed_threshold_q <= bidir_in[1];
             decay_tick_2_q <= bidir_in[2];
@@ -78,7 +78,7 @@ module chip_core #(
         end
     end
 
-    wire core_en = run_en_q | input_en_q;
+    wire core_en = rst_core_n & (run_en_q | input_en_q);
 
     assign input_pu = '0;
     assign input_pd = '0;
@@ -108,8 +108,8 @@ module chip_core #(
     logic signed [NUM_CHANNELS*DATA_WIDTH-1:0] x_flat;
 
     integer ch;
-    always_ff @(posedge clk) begin
-        if (!rst_core_n) begin
+    always_ff @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
             phase_q <= 8'd0;
             slow_q <= 8'd0;
             heartbeat_q <= 1'b0;
@@ -126,19 +126,10 @@ module chip_core #(
     end
 
     // ────────────────────────────────────────────────────────
-    // Reset buffer tree: rst_core_n fans out to >800 loads
-    // inside the SFE, causing max_slew violations at SS corner.
-    // sfe_fanout_buffer limits fanout to MAX_FANOUT per stage
-    // so synthesis can insert proper buffering.
+    // Use the raw asynchronous reset for state clear. rst_core_n gates enable
+    // only, so reset release is synchronized without creating a reset-tree
+    // setup path from the synchronizer flops.
     // ────────────────────────────────────────────────────────
-    sfe_fanout_buffer #(
-        .FANOUT(32),     // 32 loads: 20 channels + internal
-        .MAX_FANOUT(10)
-    ) u_rst_buf (
-        .in(rst_core_n),
-        .out(rst_core_buf_n)
-    );
-
     sfe_audio_frontend_top #(
         .NUM_CHANNELS(NUM_CHANNELS),
         .DATA_WIDTH(DATA_WIDTH),
@@ -146,7 +137,7 @@ module chip_core #(
         .REFRACTORY_LEN(4)
     ) u_sfe (
         .clk(clk),
-        .rst_n(rst_core_buf_n),
+        .rst_n(rst_n),
         .en(core_en),
         .channel_en({NUM_CHANNELS{1'b1}}),
         .cfg_enable_adaptive(~fixed_threshold_q),

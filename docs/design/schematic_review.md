@@ -32,7 +32,7 @@
 │  │  └───────────────────┼───────────────────────────────┘  │  │
 │  │                      │ event_valid/channel/dir/ts        │  │
 │  │  ┌───────────────────┴───────────────────────────────┐  │  │
-│  │  │  sfe_fanout_buffer (rst_core_n → rst_core_buf_n)   │  │  │
+│  │  │  rst_core_n release gate (no reset buffer tree)    │  │  │
 │  │  └───────────────────────────────────────────────────┘  │  │
 │  └──────────────────────────┬──────────────────────────────┘  │
 │                             │                                  │
@@ -171,16 +171,17 @@ rst_n (async) ──→ [FF1] ──→ rst_meta_n ──→ [FF2] ──→ rst
 
 - **Stage 1** (`rst_meta_n`): meta-stability capture
 - **Stage 2** (`rst_core_n`): clean synchronous release with full recovery time
-- All core logic uses `rst_core_n` (sync), NOT `rst_n` (async)
+- Sequential state is cleared by the external async `rst_n`; `rst_core_n` is used as a release/enable gate, not as a distributed reset tree.
 
-### Reset Fanout Buffer
-`rst_core_n` fans out to 891+ loads in the SFE core. A `sfe_fanout_buffer` tree (MAX_FANOUT=10) is inserted between `rst_core_n` and the SFE instance:
+### Reset Timing Closure
+The previous implementation buffered `rst_core_n` into the SFE reset tree. At `max_ss_125C_4v50`, this created reg-to-reg setup paths from the reset synchronizer output through inserted delay buffers. The closure fix keeps async reset assertion on `rst_n`, while `rst_core_n` only releases functional activity through `core_en`:
 
 ```
-rst_core_n ──→ sfe_fanout_buffer ──→ rst_core_buf_n ──→ sfe_audio_frontend_top
+rst_n ──→ async clear of core state
+rst_core_n ──→ core_en gate ──→ SFE starts after synchronized release
 ```
 
-This eliminates max_slew violations at SS corner by distributing the reset through properly buffered stages.
+This removes the high-fanout timed reset-release path from the synchronizer flops. Final closure must be confirmed by rerunning LibreLane/OpenROAD and checking that `max_ss_125C_4v50` has WNS >= 0, TNS = 0, and 0 setup violations.
 
 ## 7. Power Domain Planning
 

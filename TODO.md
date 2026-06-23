@@ -62,10 +62,11 @@ Workshop-slot build: 20 channels instantiated in src/chip_core.sv
 ## 🔴 CẦN LÀM TIẾP
 
 ### 1. Fix max_ss setup violations (99 violations)
-- [ ] Mở timing report cho `max_ss_125C_4v50` và liệt kê top violating paths
-- [ ] Xác định lỗi nằm ở SFE core, AER packetizer, pad path, hoặc generated/reset/control path
-- [ ] Thử tăng `CLOCK_PERIOD` tạm thời để xác định biên timing cần thiết
-- [ ] Nếu vẫn muốn giữ 25 MHz, chạy thêm repair/resize hoặc giảm cấu hình workload của workshop wrapper
+- [x] Mở timing report cho `max_ss_125C_4v50` và liệt kê top violating paths
+- [x] Xác định root cause: reset synchronizer output (`rst_core_n`) bị dùng như reset tree high-fanout, tạo ~80 reg-to-reg setup paths qua delay buffers
+- [x] Sửa RTL: dùng `rst_n` để clear state bất đồng bộ, dùng `rst_core_n` chỉ làm synchronized release/enable (`core_en`)
+- [x] Đồng bộ config: `DRT_ANTENNA_REPAIR_ITERS: 0` và skip `OpenROAD.RepairAntennas`
+- [ ] Chạy lại full LibreLane/OpenROAD và kiểm tra `max_ss_125C_4v50`: WNS >= 0, TNS = 0, setup violations = 0
 - [ ] Đây là signoff corner - cần fix trước submission
 
 ### 2. Chạy cocotb full test với PDK
