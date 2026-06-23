@@ -1,6 +1,6 @@
 # TeamVKU – SSCS Chipathon 2026
 
-> **[Track A] Foundational Building Blocks on GF180MCU**
+> **[Track A] SFE Audio Frontend – Spiking Frequency Encoder Bank**
 
 **Team Lead:** Hoang Vu | **Team Code:** *(pending assignment)*
 
@@ -10,17 +10,83 @@
 
 ## 🎯 Project Overview
 
-This repository is the **TeamVKU** submission for the **IEEE SSCS Chipathon 2026**, competing in **Track A: Foundational Building Blocks**.
+This repository contains the **TeamVKU** submission for the **IEEE SSCS Chipathon 2026**, competing in **Track A: Foundational Building Blocks**.
 
-Track A focuses on basic analog and digital building blocks implemented using the open-source GF180MCU process design kit (PDK) and the LibreLane 3.0 automated RTL-to-GDS flow.
+Our project is an **SFE (Spiking Frequency Encoder) Audio Frontend** — a neuromorphic mixed-signal IP block that converts audio input into sparse spike-event streams using 32 parallel frequency-encoding channels. The design targets the **GF180MCU** open-source process and uses the **LibreLane 3.0** automated RTL-to-GDS flow.
 
-### Target Design(s)
+### 🔬 What is SFE?
 
-> *[Update this section with your specific block designs — e.g., OpAmp, Bandgap Reference, LDO, ADC, DAC, PLL, Standard Cell Library, etc.]*
+The Spiking Frequency Encoder is a bio-inspired neural encoding scheme. Each of the 32 channels acts as an adaptive spiking neuron with:
+- **Leaky integrate-and-fire dynamics** with configurable threshold
+- **Frequency-selective encoding** across 32 spectral bands
+- **Adaptive threshold** (theta) that self-tunes between min/max bounds
+- **Refractory period** to prevent burst firing
+- **AER (Address Event Representation)** output protocol
 
-- **Block 1:** TBD
-- **Block 2:** TBD
-- **Integration:** Workshop padring (60 analog pads, 20 bidir pads)
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                  sfe_audio_frontend_top                  │
+│                                                          │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │              sfe_encoder_bank                      │   │
+│  │  ┌──────────┐  ┌──────────┐       ┌──────────┐   │   │
+│  │  │ Channel 0 │  │ Channel 1 │  ...  │Channel 31│   │   │
+│  │  │ (16-bit)  │  │ (16-bit)  │       │ (16-bit)  │   │   │
+│  │  └──────────┘  └──────────┘       └──────────┘   │   │
+│  │       ▲              ▲                  ▲         │   │
+│  │       └──────────────┴──────────────────┘         │   │
+│  │          sfe_fanout_buffer (max fanout ≤ 10)       │   │
+│  └──────────────────────────────────────────────────┘   │
+│                          │                               │
+│                          ▼                               │
+│  ┌──────────────────────────────────────────────────┐   │
+│  │           sfe_event_packetizer (AER)               │   │
+│  │  Spike→Event: channel, direction, timestamp        │   │
+│  │  FIFO depth: 16, overflow protection               │   │
+│  └──────────────────────────────────────────────────┘   │
+│                          │                               │
+│          ┌───────────────┴───────────────┐               │
+│          ▼                               ▼               │
+│   20× bidir pads                  60× analog pads        │
+│   (config in, status out)         (audio inputs)         │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 📊 Specifications
+
+| Parameter | Value |
+|-----------|-------|
+| **Channels** | 32 |
+| **Data width per channel** | 16 bit |
+| **Threshold (theta) range** | 16 – 1024 (16-bit) |
+| **Default theta** | 32 |
+| **Leak shift** | 4 |
+| **Theta decay shift** | 6 |
+| **Refractory length** | 4 cycles |
+| **Timestamp width** | 32 bit |
+| **FIFO depth** | 16 entries |
+| **Max fanout per buffer** | 10 |
+| **Output protocol** | AER (Address Event Representation) |
+| **Technology** | GF180MCU (180nm) |
+| **Process** | GlobalFoundries 0.18µm |
+
+---
+
+## 🏗️ Build Results
+
+| Metric | Value |
+|--------|-------|
+| **Lint errors** | **0** ✅ |
+| **Timing violations** | **0** ✅ |
+| **Setup/Hold violations** | **0** ✅ |
+| **Instance count** | ~129,874 |
+| **Area** | ~7.81 M units² |
+| **Total power** | ~0.018 W |
+| **GDS** | Generated ✅ |
 
 ---
 
@@ -28,71 +94,51 @@ Track A focuses on basic analog and digital building blocks implemented using th
 
 ```
 .
-├── README.md                    # This file — project overview
-├── AUTHORS.md                   # Team & copyright holders
-├── CREDITS.md                   # Detailed credits & attributions
-├── NOTICE                       # Apache-2.0 formal notice
-├── LICENSE                      # Apache-2.0
+├── README.md                         # This file
+├── AUTHORS.md                        # Team & copyright
+├── CREDITS.md / NOTICE / LICENSE     # Apache-2.0
 ├── docs/
-│   ├── proposal/                # Proposal slides & documentation
-│   ├── design/                  # Design specs, schematics, test plans
-│   ├── workshop-slot-spec.md    # Full pad-by-pad mapping
-│   ├── reproducing-native.md    # Nix-shell walkthrough
-│   └── reproducing-docker.md    # Docker (iic-osic-tools) walkthrough
+│   ├── design/                       # Design specs & docs
+│   ├── proposal/                     # Proposal slides
+│   ├── reports/                      # Weekly reports
+│   └── SFE_ADAPTER_NOTES.md          # Integration notes
 ├── src/
-│   ├── chip_top.sv              # Top-level wrapper (upstream)
-│   ├── chip_core.sv             # Core design — replace with TeamVKU blocks
-│   └── slot_defines.svh         # SLOT_WORKSHOP definitions
-├── librelane/
-│   ├── config.yaml              # LibreLane configuration
-│   ├── pdn_cfg.tcl              # Power Delivery Network config
-│   ├── chip_top.sdc             # Timing constraints
-│   └── slots/
-│       └── slot_workshop.yaml   # Workshop slot (2935×2935 µm)
-├── cocotb/                      # Cocotb testbenches
-├── examples/                    # Reference notebooks & examples
-├── scripts/                     # Helper scripts (Docker, verification)
-├── Makefile                     # Build automation
-└── flake.nix / shell.nix        # Nix development environment
+│   ├── sfe_audio_frontend_top.sv     # Top-level SFE wrapper
+│   ├── sfe_encoder_bank.sv           # 32-channel encoder bank ★
+│   ├── sfe_channel.sv                # Single SFE channel (neuron)
+│   ├── sfe_event_packetizer.sv       # AER event packer + FIFO
+│   ├── sfe_fanout_buffer.sv          # Fanout buffer tree
+│   ├── chip_core.sv                  # Workshop padring adapter
+│   ├── chip_top.sv                   # Chip top (padring)
+│   ├── slot_defines.svh              # SLOT_WORKSHOP config
+│   ├── sfe_pad_cfg.tcl               # Pad configuration
+│   ├── gf180_io_site.lef             # I/O LEF
+│   └── gf180_io_stubs.v              # I/O stub models
+├── librelane/                        # LibreLane 3.0 flow config
+├── Makefile                          # Build automation
+└── flake.nix / shell.nix             # Nix environment
 ```
-
----
-
-## 🏗️ GF180MCU Workshop Slot – Quick Reference
-
-- **Die:** 2935 × 2935 µm
-- **Core area:** 2051 × 2051 µm
-- **60 × analog pads** (`gf180mcu_fd_io__asig_5p0`)
-- **20 × bidir pads** (`gf180mcu_fd_io__bi_24t`)
-- **4 × DVDD + 4 × DVSS** power pads
-- **clk_pad, rst_n_pad**
-- **4 × corner pads** (auto-inserted by LibreLane)
-
-Full pad mapping: [`docs/workshop-slot-spec.md`](docs/workshop-slot-spec.md)
 
 ---
 
 ## 🚀 Quickstart
 
 ### Prerequisites
-
 - [Nix](https://nixos.org/download.html) with flakes enabled
-- Or Docker with [`hpretl/iic-osic-tools`](https://github.com/iic-jku/IIC-OSIC-TOOLS)
+- Or Docker: [`hpretl/iic-osic-tools`](https://github.com/iic-jku/IIC-OSIC-TOOLS)
 
 ### Build (native, Nix shell)
-
 ```bash
 git clone https://github.com/hoangvu10105/chipathon-2026-teamvku.git
 cd chipathon-2026-teamvku
-nix-shell                          # provides LibreLane 3.0.0
-make clone-pdk                     # clones wafer-space/gf180mcu @ 1.8.0
+nix-shell                          # LibreLane 3.0.0
+make clone-pdk                     # GF180MCU PDK 1.8.0
 SLOT=workshop make librelane
 ```
 
 **Build time:** ~2h 15m for full signoff (DRC + LVS + antenna + STA, 3 corners).
 
 ### Build (Docker)
-
 ```bash
 scripts/run_docker_iic.sh
 # Inside container:
@@ -100,99 +146,46 @@ make clone-pdk
 SLOT=workshop make librelane
 ```
 
-### Output Artifacts
-
-- `final/gds/chip_top.gds` — Final GDS (~85 MB)
-- `final/metrics.csv` — Signoff metrics
-- `final/*.log` — Per-stage logs
-
 ---
 
-## 🔧 How to Integrate Your Design
-
-1. Replace `src/chip_core.sv` with your RTL, keeping the port interface:
-   - `NUM_INPUT=1`, `NUM_BIDIR=20`, `NUM_ANALOG=60`
-   - `clk`, `rst_n`
-2. Update `docs/design/` with your schematics and test plans.
-3. Re-run: `SLOT=workshop make librelane`
-
-The padring remains fixed — only the core changes.
-
----
-
-## 📝 Design Flow
-
-```
-Specification
-    ↓
-Schematic Capture (xschem)
-    ↓
-SPICE Simulation (ngspice)
-    ↓
-RTL Design (SystemVerilog)
-    ↓
-Synthesis (Yosys + OpenROAD / LibreLane)
-    ↓
-Layout & DRC/LVS (Magic / KLayout)
-    ↓
-GDS Submission
-```
-
----
-
-## ✅ Verification
-
-Reference build validated **2026-04-23** with LibreLane 3.0 + wafer-space PDK 1.8.0 (DRC/LVS/antenna/STA signoff).
-
-```bash
-scripts/verify_workshop_slot.sh /path/to/reference/template
-```
-
----
-
-## 📅 Chipathon 2026 – Key Dates (Track A)
+## 🎓 Chipathon 2026 – Key Dates
 
 | Week | Date | Milestone |
 |------|------|-----------|
-| Week 26 | June 26 | Analog Design Ideas (Tutorial) |
+| Week 26 | **June 26 (TODAY)** | Analog Design Ideas 🎓 |
 | Week 27 | July 3 | **Schematic Review** 👥 |
 | Week 28 | July 10 | Simulation Review (blocks) |
-| Week 29 | July 17 | Simulation Review (top level) + **Go/No-go** |
+| Week 29 | July 17 | Simulation Review (top) + **Go/No-go** 🔴 |
 | Week 33 | Aug 14 | Layout Review (blocks) |
-| Week 34 | Aug 21 | Layout Review (top level) |
-| Week 35 | Aug 28 | Verification + Final Chip Review |
+| Week 34 | Aug 21 | Layout Review (top) |
+| Week 35 | Aug 28 | Final Verification + Chip Review |
 | TBD | — | **Final GDS Submission** |
 
 ---
 
-## 👥 Team
+## 👥 TeamVKU
 
 | Name | Role | GitHub |
 |------|------|--------|
-| Hoang Vu | Team Lead | [@hoangvu10105](https://github.com/hoangvu10105) |
-| *Your Name* | *Member* | *...add team members...* |
+| Hoang Vu | Team Lead / RTL Design | [@hoangvu10105](https://github.com/hoangvu10105) |
 
 ---
 
 ## 📞 Support
 
 - **Track A Leaders:** James Stine, Saroj, Gaurav, Akhilesh Patil, Sumanth Kamineni
-- **Discord:** [SSCS Chipathon Server](https://discord.gg/tvZcQzvt7q) → `#2026-track-a-foundational-building`
-- **Issues:** [sscs-ose/sscs-chipathon-2026/issues](https://github.com/sscs-ose/sscs-chipathon-2026/issues)
+- **Discord:** [SSCS Chipathon](https://discord.gg/tvZcQzvt7q) → `#2026-track-a-foundational-building`
+- **Issues:** [sscs-ose/sscs-chipathon-2026](https://github.com/sscs-ose/sscs-chipathon-2026/issues)
 
 ---
 
 ## 📄 License
 
-Apache-2.0, inherited from upstream. See [`LICENSE`](LICENSE), [`NOTICE`](NOTICE), and [`AUTHORS.md`](AUTHORS.md).
-
----
+Apache-2.0. See [`LICENSE`](LICENSE), [`NOTICE`](NOTICE), and [`AUTHORS.md`](AUTHORS.md).
 
 ## 🙏 Credits
 
-This repository is derived from:
-- [wafer-space/gf180mcu-project-template](https://github.com/wafer-space/gf180mcu-project-template) — by Leo Moser & contributors
+Derived from:
+- [wafer-space/gf180mcu-project-template](https://github.com/wafer-space/gf180mcu-project-template) — Leo Moser & contributors
 - [JuanMoya/padring_gf180](https://github.com/JuanMoya/padring_gf180) — Workshop pad layout
-- [Mauricio-xx/chipathon-2026-gf180mcu-padring](https://github.com/Mauricio-xx/chipathon-2026-gf180mcu-padring) — Chipathon 2026 workshop fork
-
-See [`CREDITS.md`](CREDITS.md) for full attributions.
+- [Mauricio-xx/chipathon-2026-gf180mcu-padring](https://github.com/Mauricio-xx/chipathon-2026-gf180mcu-padring) — Chipathon fork

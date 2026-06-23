@@ -49,7 +49,7 @@ module chip_top #(
     generate
     for (genvar i=0; i<NUM_DVDD_PADS; i++) begin : dvdd_pads
         (* keep *)
-        gf180mcu_ws_io__dvdd pad (
+        gf180mcu_fd_io__dvdd pad (
             `ifdef USE_POWER_PINS
             .DVDD   (VDD),
             .DVSS   (VSS),
@@ -60,7 +60,7 @@ module chip_top #(
     
     for (genvar i=0; i<NUM_DVSS_PADS; i++) begin : dvss_pads
         (* keep *)
-        gf180mcu_ws_io__dvss pad (
+        gf180mcu_fd_io__dvss pad (
             `ifdef USE_POWER_PINS
             .DVDD   (VDD),
             .DVSS   (VSS),
@@ -196,13 +196,15 @@ module chip_top #(
         .analog     (analog_PAD)
     );
     
-    // Chip ID - do not remove, necessary for tapeout
-    (* keep *)
-    gf180mcu_ws_ip__id chip_id ();
-    
-    // wafer.space logo - can be removed
-    (* keep *)
-    gf180mcu_ws_ip__logo wafer_space_logo ();
+    // chip_id + wafer.space logo disabled for the multimacro example.
+    // Re-enable for chipathon submissions (chip_id is required for tapeout).
+    // // Chip ID - do not remove, necessary for tapeout
+    // (* keep *)
+    // gf180mcu_ws_ip__id chip_id ();
+    //
+    // // wafer.space logo - can be removed
+    // (* keep *)
+    // gf180mcu_ws_ip__logo wafer_space_logo ();
 
 endmodule
 
