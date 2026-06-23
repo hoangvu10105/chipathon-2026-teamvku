@@ -158,7 +158,74 @@ Each buffer stage drives at most MAX_FANOUT=10 loads. Multi-bit signals use per-
 
 ---
 
-## 6. Known Issues
+## 6. Clock Domain Crossing (CDC)
+
+### Reset Synchronizer
+The external `rst_n` is an asynchronous active-low reset. `chip_core` implements a two-stage synchronizer to safely bring it into the core clock domain:
+
+```
+rst_n (async) ──→ [FF1] ──→ rst_meta_n ──→ [FF2] ──→ rst_core_n
+                      ↑                    ↑
+                    clk                  clk
+```
+
+- **Stage 1** (`rst_meta_n`): meta-stability capture
+- **Stage 2** (`rst_core_n`): clean synchronous release with full recovery time
+- All core logic uses `rst_core_n` (sync), NOT `rst_n` (async)
+
+### Reset Fanout Buffer
+`rst_core_n` fans out to 891+ loads in the SFE core. A `sfe_fanout_buffer` tree (MAX_FANOUT=10) is inserted between `rst_core_n` and the SFE instance:
+
+```
+rst_core_n ──→ sfe_fanout_buffer ──→ rst_core_buf_n ──→ sfe_audio_frontend_top
+```
+
+This eliminates max_slew violations at SS corner by distributing the reset through properly buffered stages.
+
+## 7. Power Domain Planning
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Power Distribution                        │
+│                                                              │
+│  DVDD (1.8V Core)              DVDD (3.3V I/O)              │
+│  ┌──────────────────┐         ┌──────────────────┐          │
+│  │ 4× dvdd pads     │         │ I/O ring cells   │          │
+│  │   · N: vdd_ana1  │         │   · bi_24t pads  │          │
+│  │   · E: vdd_dig1  │         │   · in_c/in_s    │          │
+│  │   · S: vdd_ana2  │         │   · asig_5p0     │          │
+│  │   · W: vdd_dig4  │         │   · corner cells │          │
+│  └──────┬───────────┘         └──────┬───────────┘          │
+│         │                            │                       │
+│  ┌──────┴────────────────────────────┴───────────┐          │
+│  │            Core PDN Grid                       │          │
+│  │  · Metal2 (vertical straps, 5µm, pitch 75µm)  │          │
+│  │  · Metal3 (horizontal straps, 5µm, pitch 75µm)│          │
+│  │  · Core ring: 25µm on Metal2/Metal3           │          │
+│  │  · Ring connected to pads                      │          │
+│  └────────────────────────────────────────────────┘          │
+│                                                              │
+│  DVSS (GND) - identical distribution via 4× dvss pads       │
+│                                                              │
+│  Total power (preliminary): 0.018 W                          │
+│  IR drop report: pending (enable for sign-off)               │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## 8. input_en_q / input_in[0] Usage
+
+The workshop slot has `NUM_INPUT_PADS=1` (a Yosys workaround for zero-width vector handling). This single input pad is wired to `input_in[0]` in `chip_core.sv`:
+
+```systemverilog
+input_en_q <= input_in[0];                          // External enable
+wire core_en = run_en_q | input_en_q;               // Combined enable
+```
+
+- **Default state**: `input_in[0]` is pulled low externally (pad not driven → `input_pu=input_pd=0`)
+- **`run_en_q`** from `bidir_in[0]` is the primary enable source
+- **`input_en_q`** offers a secondary enable path (OR-gated) — can be used in future board designs or left unconnected
+
+## 9. Known Issues
 
 | Issue | Severity | Status |
 |-------|----------|--------|
@@ -169,13 +236,13 @@ Each buffer stage drives at most MAX_FANOUT=10 loads. Multi-bit signals use per-
 
 ---
 
-## 7. Review Checklist
+## 10. Review Checklist
 
 - [ ] Architecture diagram reviewed
 - [ ] Channel neuron schematic verified
 - [ ] AER protocol timing confirmed
 - [ ] Padring pinout validated
-- [ ] Clock domain crossing checked (rst_n async → sync)
-- [ ] Power domain planning (VDD/VSS distribution)
-- [ ] Test plan: cocotb testbench for digital core
-- [ ] DRC/LVS status: clean on digital blocks
+- [x] Clock domain crossing checked (rst_n async → sync, 2-stage FF + fanout buffer)
+- [x] Power domain planning (VDD/VSS distribution, PDN grid, core ring)
+- [x] Test plan: cocotb testbench rewritten for SFE core
+- [ ] DRC/LVS status: rebuild pending with slew fix

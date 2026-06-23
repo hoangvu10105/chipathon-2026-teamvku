@@ -196,15 +196,13 @@ module chip_top #(
         .analog     (analog_PAD)
     );
     
-    // chip_id + wafer.space logo disabled for the multimacro example.
-    // Re-enable for chipathon submissions (chip_id is required for tapeout).
-    // // Chip ID - do not remove, necessary for tapeout
-    // (* keep *)
-    // gf180mcu_ws_ip__id chip_id ();
-    //
-    // // wafer.space logo - can be removed
-    // (* keep *)
-    // gf180mcu_ws_ip__logo wafer_space_logo ();
+    // Chip ID - required for tapeout, do not remove
+    (* keep *)
+    gf180mcu_ws_ip__id chip_id ();
+
+    // wafer.space logo
+    (* keep *)
+    gf180mcu_ws_ip__logo wafer_space_logo ();
 
 endmodule
 
