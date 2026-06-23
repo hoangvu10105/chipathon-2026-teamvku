@@ -6,6 +6,7 @@ meta:
     # ports are intentionally not placed as standalone IO pins.
     OpenROAD.GlobalPlacement: OpenROAD.GlobalPlacementSkipIO
     OpenROAD.RepairAntennas: null
+    Odb.DiodesOnPorts: null
 
     # Disable KLayout DRC
     #KLayout.DRC: null
