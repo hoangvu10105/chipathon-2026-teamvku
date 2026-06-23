@@ -81,4 +81,23 @@ sim-view: ## View simulation waveforms in GTKWave
 render-image: ## Render an image from the final layout (after copy-final)
 	mkdir -p img/
 	PDK_ROOT=${PDK_ROOT} PDK=${PDK} python3 scripts/lay2img.py final/gds/${TOP}.gds img/${TOP}.png --width 2048 --oversampling 4
+.PHONY: render-image
+
+copy-final: ## Copy final views from the latest LibreLane run into final/
+	@if [ ! -d librelane/runs ]; then \
+		echo "ERROR: librelane/runs does not exist. Run SLOT=$(SLOT) make librelane first."; \
+		exit 1; \
+	fi
+	@RUN=$$(ls -1dt librelane/runs/* 2>/dev/null | head -n 1); \
+	if [ -z "$$RUN" ]; then \
+		echo "ERROR: no LibreLane run found under librelane/runs."; \
+		exit 1; \
+	fi; \
+	if [ ! -d "$$RUN/final" ]; then \
+		echo "ERROR: latest run has no final/ directory: $$RUN"; \
+		exit 1; \
+	fi; \
+	echo "Copying final views from $$RUN/final to $(MAKEFILE_DIR)/final"; \
+	rm -rf "$(MAKEFILE_DIR)/final"; \
+	cp -a "$$RUN/final" "$(MAKEFILE_DIR)/final"
 .PHONY: copy-final

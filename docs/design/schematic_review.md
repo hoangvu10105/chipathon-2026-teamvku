@@ -1,6 +1,6 @@
 # Schematic Review – Week 27 (July 3, 2026)
 
-**Team:** TeamVKU | **Track:** A – Foundational Building Blocks  
+**Team:** TeamVKU | **Track:** A – Foundational Building Blocks
 **Project:** SFE Audio Frontend – Spiking Frequency Encoder Bank
 
 ---
@@ -15,7 +15,7 @@
 │  │  ┌──────────────────────────────────────────────────┐  │  │
 │  │  │            sfe_audio_frontend_top                  │  │  │
 │  │  │  ┌────────────────────────────────────────────┐  │  │  │
-│  │  │  │          sfe_encoder_bank (×32)              │  │  │  │
+│  │  │  │      sfe_encoder_bank (parameterized)        │  │  │  │
 │  │  │  │  ┌──────┐ ┌──────┐       ┌──────┐          │  │  │  │
 │  │  │  │  │ Ch 0 │ │ Ch 1 │  ...  │ Ch31 │          │  │  │  │
 │  │  │  │  └──┬───┘ └──┬───┘       └──┬───┘          │  │  │  │
@@ -48,7 +48,7 @@
 ## 2. SFE Channel (Integrate-and-Fire Neuron)
 
 ### Schematic Description
-Each of the 32 channels implements an adaptive integrate-and-fire neuron:
+Each instantiated channel implements an adaptive integrate-and-fire encoder. The generic IP defaults to 32 channels; the current workshop-slot adapter instantiates 20 channels in `src/chip_core.sv`.
 
 ```
 x[n] (16-bit) ──→ [Membrane Accumulator] ──→ [Comparator] ──→ spike
@@ -91,7 +91,7 @@ x[n] (16-bit) ──→ [Membrane Accumulator] ──→ [Comparator] ──→ 
 
 ```
 spike_up[31:0]   ──→ [Priority Encoder] ──→ [FIFO (depth 16)] ──→ event_valid
-spike_down[31:0] ──→                          │                 → event_channel[4:0]
+spike_down[N-1:0] ─→                          │                 → event_channel
                                                │                 → event_direction
                                          [timestamp]             → event_timestamp[31:0]
                                          counter 32-bit          → fifo_full/overflow
@@ -102,7 +102,7 @@ spike_down[31:0] ──→                          │                 → even
 | Signal | Width | Description |
 |--------|-------|-------------|
 | event_valid | 1 | Strobe: event data valid this cycle |
-| event_channel | 5 | Source channel (0–31) |
+| event_channel | derived | Source channel |
 | event_direction | 1 | 0=spike_down, 1=spike_up |
 | event_timestamp | 32 | Monotonic event timestamp |
 | fifo_full | 1 | FIFO at capacity |
@@ -114,7 +114,7 @@ spike_down[31:0] ──→                          │                 → even
 ## 4. Fanout Buffer Tree
 
 ### Problem
-High-fanout control signals (rst_n, en, cfg signals) drive 32 channels simultaneously, causing max_fanout violations.
+High-fanout control signals (rst_n, en, cfg signals) drive all instantiated channels simultaneously, causing max_fanout/max_slew risk without buffering.
 
 ### Solution: `sfe_fanout_buffer`
 ```
@@ -229,9 +229,9 @@ wire core_en = run_en_q | input_en_q;               // Combined enable
 
 | Issue | Severity | Status |
 |-------|----------|--------|
-| max_slew @ SS corner (2470 violations) | Medium | Fix applied, rebuild pending |
-| max_fanout violations (65) | Low | SYNTH_MAX_FANOUT=10 added |
-| max_cap violations (22) | Low | Being addressed with MAX_TRANSITION_CONSTRAINT |
+| max_slew / max_cap / max_fanout electrical warnings | Medium | Rebuild completed; final `metrics.csv` must be refreshed before claiming closure |
+| stale committed metrics | Medium | `docs/build_metrics.csv/json` still show older DRV counts |
+| gate-level regression | Medium | Pending after `make copy-final` |
 | No analog frontend | Future | Reserve 60 analog pads for Phase 2 |
 
 ---
@@ -245,4 +245,6 @@ wire core_en = run_en_q | input_en_q;               // Combined enable
 - [x] Clock domain crossing checked (rst_n async → sync, 2-stage FF + fanout buffer)
 - [x] Power domain planning (VDD/VSS distribution, PDN grid, core ring)
 - [x] Test plan: cocotb testbench rewritten for SFE core
-- [ ] DRC/LVS status: rebuild pending with slew fix
+- [x] DRC/LVS status: latest log reports clean DRC/LVS
+- [ ] Electrical warning closure confirmed from final metrics
+- [ ] Gate-level regression completed
