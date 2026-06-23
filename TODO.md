@@ -1,6 +1,6 @@
 # TODO – TeamVKU SSCS Chipathon 2026
 
-> Cập nhật: 2026-06-23 16:56 ICT | **BUILD #5 HOÀN THÀNH** — SLEW SS: 39 (↓98.4%), DRC/LVS CLEAN, còn 99 setup violations ở `max_ss`
+> Cập nhật: 2026-06-23 16:56 ICT | **BUILD #5 HOÀN THÀNH** — SS Slew: 39 (↓98.4%), Magic/KLayout DRC + LVS: 0, 40 KLayout antenna deferred, 99 setup vio ở `max_ss_125C`
 
 ---
 
@@ -53,8 +53,9 @@ Workshop-slot build: 20 channels instantiated in src/chip_core.sv
 
 ### 🔥 Cải thiện chính
 - **Slew SS 125°C: 2451 → 39 (-98.4%)** nhờ `GRT_RESIZER` + `RUN_POST_GRT_DESIGN_REPAIR`
-- DRC/LVS vẫn clean như build trước
-- Tất cả nom corners timing clean
+- Magic DRC + KLayout DRC + LVS: 0 (clean như build trước)
+- Tất cả `nom_*` corners timing clean (0 setup/hold violations)
+- ⚠️ `max_ss_125C_4v50` (signoff corner) có 99 setup violations — đây là lý do build exit code 2
 
 ---
 
@@ -67,17 +68,28 @@ Workshop-slot build: 20 channels instantiated in src/chip_core.sv
 - [ ] Nếu vẫn muốn giữ 25 MHz, chạy thêm repair/resize hoặc giảm cấu hình workload của workshop wrapper
 - [ ] Đây là signoff corner - cần fix trước submission
 
-### 2. Post-build verification
+### 2. Chạy cocotb full test với PDK
+- [ ] Chạy SFE testbench với GDS PDK (không chỉ verilator)
+```bash
+docker run --rm \
+  -v ~/eda/designs/sfe_chipathon_padring_latest:/foss/designs/sfe_chipathon_padring \
+  -v ~/gf180mcu:/foss/pdks/gf180mcuD \
+  -e PDK_ROOT=/foss/pdks -e PDK=gf180mcuD -e SLOT=workshop \
+  hpretl/iic-osic-tools:chipathon26 --skip \
+  bash -c "cd /foss/designs/sfe_chipathon_padring && make sim"
+```
+
+### 3. Post-build verification
 - [ ] Copy final artifacts: `make copy-final` (GDS, DEF, netlist, SDC, SDF, SPEF)
 - [ ] Render chip layout image: `make render-image`
 - [ ] Gate-level simulation: `GL=1 make sim-gl`
 
-### 3. Schematic Review (July 3) — Chuẩn bị
+### 4. Schematic Review (July 3) — Chuẩn bị
 - [ ] Cập nhật `docs/design/TeamVKU_Schematic_Review_W27.pptx` với metrics mới
 - [ ] Thêm screenshot GDS layout vào slides
 - [ ] Submit weekly report Week 26: https://forms.gle/6839F1Jppxx42yw5A
 
-### 4. Submission checklist
+### 5. Submission checklist
 - [x] `final/gds/chip_top.gds` — Final GDSII ✅
 - [x] `final/nl/chip_top.nl.v` / `chip_top.v` — Gate-level netlist ✅
 - [x] `final/sdc/chip_top.sdc` — SDC constraints ✅
@@ -87,7 +99,7 @@ Workshop-slot build: 20 channels instantiated in src/chip_core.sv
 - [x] Magic DRC report (clean) ✅
 - [x] Netgen LVS report (clean) ✅
 
-### 5. GitHub
+### 6. GitHub
 - [ ] **ĐỂ REPO PRIVATE** — Settings → Danger Zone → Make Private
 - [x] GitHub Issue chính thức: https://github.com/sscs-ose/sscs-chipathon-2026/issues/167
 - [ ] Cập nhật Issue #167 với Build #5 metrics và phần còn lại: 99 setup violations ở `max_ss`
