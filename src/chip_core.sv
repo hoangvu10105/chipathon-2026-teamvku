@@ -42,7 +42,6 @@ module chip_core #(
 
     logic rst_meta_n;
     logic rst_core_n;
-    logic rst_core_buf_n;  // Buffered reset for high-fanout SFE
     logic run_en_q;
     logic fixed_threshold_q;
     logic decay_tick_2_q;
@@ -126,18 +125,18 @@ module chip_core #(
     end
 
     // ────────────────────────────────────────────────────────
-    // Reset buffer tree: rst_core_n fans out to >800 loads
-    // inside the SFE, causing max_slew violations at SS corner.
-    // sfe_fanout_buffer limits fanout to MAX_FANOUT per stage
-    // so synthesis can insert proper buffering.
+    // Reset buffering: rst_core_n fans out to >800 loads.
+    // Instead of RTL buffer tree (which Yosys optimizes away),
+    // rely on SYNTH_MAX_FANOUT + MAX_FANOUT_CONSTRAINT in
+    // config.yaml to tell synthesis/OpenROAD to buffer.
+    // Explicit (* keep *) buffer chain prevents optimization.
     // ────────────────────────────────────────────────────────
-    sfe_fanout_buffer #(
-        .FANOUT(32),     // 32 loads: 20 channels + internal
-        .MAX_FANOUT(10)
-    ) u_rst_buf (
-        .in(rst_core_n),
-        .out(rst_core_buf_n)
-    );
+    (* keep = "true" *) logic rst_buf_0;
+    (* keep = "true" *) logic rst_buf_1;
+    (* keep = "true" *) logic rst_buf_2;
+    gf180mcu_fd_sc_mcu7t5v0__buf_8 u_rst_buf_0 (.I(rst_core_n),  .Z(rst_buf_0));
+    gf180mcu_fd_sc_mcu7t5v0__buf_8 u_rst_buf_1 (.I(rst_buf_0),   .Z(rst_buf_1));
+    gf180mcu_fd_sc_mcu7t5v0__buf_8 u_rst_buf_2 (.I(rst_buf_1),   .Z(rst_buf_2));
 
     sfe_audio_frontend_top #(
         .NUM_CHANNELS(NUM_CHANNELS),
@@ -146,7 +145,7 @@ module chip_core #(
         .REFRACTORY_LEN(4)
     ) u_sfe (
         .clk(clk),
-        .rst_n(rst_core_buf_n),
+        .rst_n(rst_buf_2),
         .en(core_en),
         .channel_en({NUM_CHANNELS{1'b1}}),
         .cfg_enable_adaptive(~fixed_threshold_q),
