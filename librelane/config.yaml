@@ -99,10 +99,10 @@ IGNORE_DISCONNECTED_MODULES:
 CLOCK_PORT: clk_PAD
 CLOCK_NET: clk_pad/Y
 CLOCK_PERIOD: 40 # 25 MHz
-SYNTH_MAX_FANOUT: 10
+SYNTH_MAX_FANOUT: 6
 SYNTH_MAX_TRAN: 3.0
 MAX_TRANSITION_CONSTRAINT: 3.0
-MAX_FANOUT_CONSTRAINT: 10
+MAX_FANOUT_CONSTRAINT: 6
 
 # Fix hold violations
 PL_RESIZER_HOLD_SLACK_MARGIN: 0.35
@@ -117,7 +117,7 @@ GRT_ALLOW_CONGESTION: true
 # access near the clock pad buffer. Keep post-DRT repair disabled and make the
 # pre-route global antenna repair more conservative instead.
 DIODE_ON_PORTS: none
-GRT_ANTENNA_REPAIR_MARGIN: 50 # %
+GRT_ANTENNA_REPAIR_MARGIN: 100 # %
 GRT_ANTENNA_REPAIR_JUMPER_ONLY: true
 DRT_ANTENNA_REPAIR_ITERS: 0
 DRT_ANTENNA_REPAIR_MARGIN: 10 # %
@@ -156,6 +156,16 @@ ERROR_ON_MAGIC_DRC: False
 # technology mapping. Keep the full reports for review, but allow the
 # GF180 physical flow to proceed to placement/routing/signoff.
 ERROR_ON_SYNTH_CHECKS: False
+
+# Build #12: Prevent dlyb_* delay buffers at synthesis level.
+# These cells create ~2ns delay each and antenna-prone long Metal2
+# routes. Combined with set_dont_use in SDC (catches P&R/resizer),
+# this ensures synthesis also avoids them from the start.
+SYNTH_DONT_USE:
+  - gf180mcu_fd_sc_mcu7t5v0__dlyb_1
+  - gf180mcu_fd_sc_mcu7t5v0__dlyb_2
+  - gf180mcu_fd_sc_mcu7t5v0__dlyb_4
+  - gf180mcu_fd_sc_mcu7t5v0__dlyb_8
 
 # Prevent false positive DRC errors in I/O cells
 MAGIC_GDS_FLATGLOB:
