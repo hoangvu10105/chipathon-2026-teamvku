@@ -180,65 +180,46 @@ docker run --rm \
 
 ---
 
-## 📅 9-DAY PLAN → Schematic Review July 3
+## ⚡ 3-DAY SPRINT → Technical Close by Jun 26
 
-### Ngày 1 — Jun 24 (HÔM NAY) ✅
-- [x] Phân tích 15 setup violators từ Build #7
-- [x] **Root cause**: `dlyb_1` delay buffers trên high-fanout control signals
-  - 13/15 vi phạm từ `_31363_/Q` (fixed_threshold_q) → channel config registers
-  - 1/15 từ `_32778_/Q` (rst_core_n) → fanout tree qua 5-6 tầng dlyb
-  - Mỗi `dlyb_1` gây ~1.5-2.8ns delay → giết setup timing ở max_ss
-  - Hold margin dư lớn (1.44ns max_ss) → có thể swap dlyb → buf thường
-- [x] Kế hoạch 9 ngày đã lập
-- [ ] ⏳ **Đợi Build #8 kết quả antenna** (DRT iteration 3, ~30-45 phút nữa)
+> **Mục tiêu**: Tất cả build pass (exit 0) trong 3 ngày. Còn 6 ngày buffer để slides + rehearsal.
 
-### Ngày 2 — Jun 25 ⏳
-- [ ] **Kiểm tra Build #8 antenna = 0?**
-  - Nếu = 0 → PUSH git, đánh dấu milestone ✅
-  - Nếu > 0 → debug: thử `DRT_ANTENNA_REPAIR_ITERS: 1` hoặc thêm `set_antenna_rule`
-- [ ] Verify không có DRT-0073 tái phát
-- [ ] Nếu antenna clean → chạy build với timing fix
+### 🔴 NGÀY 1 — Jun 24 (HÔM NAY): Antenna + Bắt đầu Timing
+- [x] Phân tích 15 setup violators: root cause = `dlyb_1` delay buffers
+- [x] Kế hoạch 3 ngày đã lập
+- [ ] ⏳ **Build #8 — ĐANG Ở FILL CELLS** (stage ~76/81, ~10-15 phút nữa)
+- [ ] **NGAY KHI BUILD #8 XONG**:
+  - [ ] Kiểm tra antenna: target = 0
+  - [ ] Nếu antenna = 0 → PUSH git + commit "Antenna clean"
+  - [ ] Nếu antenna > 0 → fix ngay: thử `DRT_ANTENNA_REPAIR_ITERS: 1` hoặc thêm `set_antenna_rule`
+- [ ] **SONG SONG: Bắt đầu timing fix** — không đợi Build #8:
+  - [ ] Thêm `set_dont_use gf180mcu_fd_sc_mcu7t5v0__dlyb_*` vào SDC
+  - [ ] Thêm `set_max_fanout 32 [current_design]` vào SDC
+  - [ ] Commit + push → server → chạy Build #9 (antenna+timing combined)
 
-### Ngày 3 — Jun 26 ⏳
-- [ ] **Fix 15 setup violations**:
-  - [ ] `set_dont_use` trên `gf180mcu_fd_sc_mcu7t5v0__dlyb_*` trong SDC
-  - [ ] Thêm buffer tree balanced cho `fixed_threshold_q` và `rst_core_n`
-  - [ ] Hoặc pipeline control signals (thêm 1 register stage)
-- [ ] Chạy Build #9 (timing fix) trên server
+### 🟡 NGÀY 2 — Jun 25: Timing Close
+- [ ] Build #9 results:
+  - [ ] Target: setup violations = 0, slew < 100, antenna = 0
+  - [ ] Nếu chưa đạt → pipeline `fixed_threshold_q` (thêm 1 register stage)
+  - [ ] Nếu vẫn chưa đạt → pipeline `rst_core_n` fanout tree
+- [ ] Chạy Build #10 nếu cần (iterate nhanh, mỗi build ~2h)
+- [ ] **SONG SONG: Bắt đầu slides** — không đợi build finish
+  - [ ] Mở `TeamVKU_Schematic_Review_W27.pptx`, cập nhật metrics mới nhất
+  - [ ] Thêm slide: Build history comparison table
+  - [ ] Thêm slide: DRC/LVS/Antenna status
 
-### Ngày 4 — Jun 27 ⏳
-- [ ] Build #9 results: target setup = 0, slew < 100
-- [ ] Nếu chưa đạt → iterate: thử `set_max_fanout` constraint
-- [ ] Chạy lại nếu cần
-
-### Ngày 5 — Jun 28 ⏳
+### 🟢 NGÀY 3 — Jun 26: Finalize + Report
 - [ ] **Final build verify**: exit code 0, all corners clean
-- [ ] Thu thập toàn bộ metrics cho slides
 - [ ] Copy final artifacts: `make copy-final`
-
-### Ngày 6 — Jun 29 ⏳
-- [ ] **Cập nhật Schematic Review slides** (`TeamVKU_Schematic_Review_W27.pptx`)
-  - [ ] Design overview + block diagram
-  - [ ] Build history (B#4→B#9 metrics comparison)
-  - [ ] DRC/LVS/Antenna results
-  - [ ] Timing corners (9 corners table)
-  - [ ] Physical layout (GDS screenshot)
-  - [ ] Remaining issues + plan
-- [ ] Viết `schematic_review.md` notes cho presentation
-
-### Ngày 7 — Jun 30 ⏳
-- [ ] **Render chip layout ảnh** (`make render-image`)
+- [ ] **Render chip layout** (`make render-image`) → thêm vào slides
+- [ ] Hoàn thiện slides (5-7 slides)
 - [ ] Submit **Week 26 weekly report**: https://forms.gle/6839F1Jppxx42yw5A
 
-### Ngày 8 — Jul 1 ⏳
-- [ ] **Rehearsal** — practice 5-7 slides, ~5-7 phút
-- [ ] Dry-run Q&A: DRC strategy, antenna fix, timing closure approach
-- [ ] Final polish slides
-
-### Ngày 9 — Jul 2 ⏳
-- [ ] Backup build nếu có thay đổi last-minute
-- [ ] Final check all artifacts accessible
-- [ ] Confirm Zoom: https://us06web.zoom.us/j/87694732928?pwd=gjUePaAEKDJB2G3f2d4iPIqyYe0qBx.1
+### 📅 Buffer: Jun 27 – Jul 2 (6 ngày)
+- [ ] Rehearsal presentation
+- [ ] Dry-run Q&A
+- [ ] Backup build nếu phát sinh issue
+- [ ] Final polish
 
 ### 📊 Timing Violator Analysis (Build #7)
 
@@ -256,15 +237,28 @@ Source: _32778_/Q (rst_core_n) — 1 path, -0.03ns
   │   → max_cap984(buf_4) → _16488_(oai21) → fanout880(dlyb_1) → ...
   └── 5-6 tầng buffer/dlyb, tổng delay > 8ns
 
-Root Cause: dlyb_1 cells (delay buffers) inserted bởi tool để fix hold,
-            nhưng mỗi cell delay 1.5-2.8ns → kill setup ở max_ss corner.
-            Hold margin dư 1.44ns → có thể thay bằng buf_4/buf_8 thường.
+Root Cause: dlyb_1 đã fix hold nhưng kill setup.
+            Hold margin 1.44ns → swap sang buf_4/buf_8.
 
-Fix strategy:
-  1. set_dont_use gf180mcu_fd_sc_mcu7t5v0__dlyb_*  (ngăn tool dùng delay buffer)
-  2. set_max_fanout 32 [current_design]              (giới hạn fanout mỗi cell)
-  3. Nếu vẫn chưa đủ → pipeline control signals
+Fix (theo thứ tự thử):
+  1. set_dont_use gf180mcu_fd_sc_mcu7t5v0__dlyb_*          ← Ngày 1
+  2. set_max_fanout 32 [current_design]                      ← Ngày 1
+  3. Pipeline fixed_threshold_q (1 register stage)           ← Ngày 2 nếu cần
+  4. Pipeline rst_core_n fanout                              ← Ngày 2 nếu cần
 ```
+
+### 🎯 Target cho Schematic Review
+
+| Chỉ tiêu | Hiện tại | Target | Deadline |
+|----------|---------|--------|----------|
+| KLayout Antenna | 22-48 ❌ | **0** ✅ | Jun 24 |
+| Setup Vio max_ss | 15 | **0** | Jun 26 |
+| Slew max_ss | 188 | **< 100** | Jun 26 |
+| DRC | 0 ✅ | 0 ✅ | Done |
+| LVS | 0 ✅ | 0 ✅ | Done |
+| Exit Code | 2 | **0** | Jun 26 |
+| Slides | Cũ | **Updated** | Jun 26 |
+| Week 26 Report | - | **Submitted** | Jun 26 |
 
 ---
 
