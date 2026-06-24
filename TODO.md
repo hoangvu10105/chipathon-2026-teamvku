@@ -1,6 +1,6 @@
 # TODO – TeamVKU SSCS Chipathon 2026
 
-> Cập nhật: 2026-06-24 | **BUILD #11 HOÀN THÀNH, vẫn exit 2** — DRC/LVS pass, route pass, nhưng KLayout antenna còn 46 và max_ss setup còn 14; **BUILD #12** cần sửa chọn lọc fanout/dlyb/antenna nets thay vì auto post-DRT repair
+> Cập nhật: 2026-06-24 20:05 ICT | **BUILD #12 — COMMIT db0a1d3** — Ban dlyb_* (SDC dont_use + SYNTH_DONT_USE), fanout 10→6, GRT_ANTENNA_REPAIR_MARGIN 50→100; chờ trigger build trên remote
 
 ---
 
@@ -80,8 +80,8 @@ Workshop-slot build: 20 channels instantiated in src/chip_core.sv
   - Timing max_ss: WNS -0.8849 ns, TNS -7.9415 ns, setup vio 14
   - Electrical: max slew 177, max cap 45, max fanout 8
   - Conclusion: stronger pre-route repair helps only slightly; post-DRT repair causes `DRT-1231`, so next fix must be selective net/topology cleanup
-- [ ] Build #12: sửa chọn lọc các fanout/dlyb antenna nets và timing path, không bật post-DRT auto repair
-- [ ] Sau khi fix antenna, chạy lại để verify WNS >= 0 ở max_ss
+- [x] **Build #12 commit (db0a1d3)** — Strategy: ban dlyb_* from both synthesis (SYNTH_DONT_USE) and P&R (SDC dont_use), tighten fanout 10→6, boost GRT_ANTENNA_REPAIR_MARGIN 50→100. DRT_ANTENNA_REPAIR_ITERS stays 0.
+- [ ] **Build #12 run** — Pull trên remote + chạy build. Kiểm tra 4 metrics: (1) dlyb_1 instance count ~1256→0, (2) setup max_ss 14→0, (3) antenna 46→0, (4) route pass + không DRT-1231
 
 ### 2. Chạy cocotb full test với PDK
 - [ ] Chạy SFE testbench với GDS PDK (không chỉ verilator)
