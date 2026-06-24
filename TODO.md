@@ -1,6 +1,6 @@
 # TODO – TeamVKU SSCS Chipathon 2026
 
-> Cập nhật: 2026-06-24 01:10 ICT | **BUILD #6 + #7 HOÀN THÀNH** — Setup vio: 99→29→15, Antenna vẫn fatal (22/48), cần fix antenna config để pass exit code 2
+> Cập nhật: 2026-06-24 07:30 ICT | **BUILD #8 ĐANG CHẠY** (antenna fix) — DRT iter 3; **9-DAY PLAN ACTIVE** → Schematic Review July 3
 
 ---
 
@@ -177,6 +177,94 @@ docker run --rm \
 | LVS | 0 ✅ | 0 ✅ | 0 ✅ | 0 ✅ |
 | **Antenna** | - | 40 ⚠️ | **22** ❌ | **48** ❌ |
 | Exit Code | ? | 2 | 2 | 2 |
+
+---
+
+## 📅 9-DAY PLAN → Schematic Review July 3
+
+### Ngày 1 — Jun 24 (HÔM NAY) ✅
+- [x] Phân tích 15 setup violators từ Build #7
+- [x] **Root cause**: `dlyb_1` delay buffers trên high-fanout control signals
+  - 13/15 vi phạm từ `_31363_/Q` (fixed_threshold_q) → channel config registers
+  - 1/15 từ `_32778_/Q` (rst_core_n) → fanout tree qua 5-6 tầng dlyb
+  - Mỗi `dlyb_1` gây ~1.5-2.8ns delay → giết setup timing ở max_ss
+  - Hold margin dư lớn (1.44ns max_ss) → có thể swap dlyb → buf thường
+- [x] Kế hoạch 9 ngày đã lập
+- [ ] ⏳ **Đợi Build #8 kết quả antenna** (DRT iteration 3, ~30-45 phút nữa)
+
+### Ngày 2 — Jun 25 ⏳
+- [ ] **Kiểm tra Build #8 antenna = 0?**
+  - Nếu = 0 → PUSH git, đánh dấu milestone ✅
+  - Nếu > 0 → debug: thử `DRT_ANTENNA_REPAIR_ITERS: 1` hoặc thêm `set_antenna_rule`
+- [ ] Verify không có DRT-0073 tái phát
+- [ ] Nếu antenna clean → chạy build với timing fix
+
+### Ngày 3 — Jun 26 ⏳
+- [ ] **Fix 15 setup violations**:
+  - [ ] `set_dont_use` trên `gf180mcu_fd_sc_mcu7t5v0__dlyb_*` trong SDC
+  - [ ] Thêm buffer tree balanced cho `fixed_threshold_q` và `rst_core_n`
+  - [ ] Hoặc pipeline control signals (thêm 1 register stage)
+- [ ] Chạy Build #9 (timing fix) trên server
+
+### Ngày 4 — Jun 27 ⏳
+- [ ] Build #9 results: target setup = 0, slew < 100
+- [ ] Nếu chưa đạt → iterate: thử `set_max_fanout` constraint
+- [ ] Chạy lại nếu cần
+
+### Ngày 5 — Jun 28 ⏳
+- [ ] **Final build verify**: exit code 0, all corners clean
+- [ ] Thu thập toàn bộ metrics cho slides
+- [ ] Copy final artifacts: `make copy-final`
+
+### Ngày 6 — Jun 29 ⏳
+- [ ] **Cập nhật Schematic Review slides** (`TeamVKU_Schematic_Review_W27.pptx`)
+  - [ ] Design overview + block diagram
+  - [ ] Build history (B#4→B#9 metrics comparison)
+  - [ ] DRC/LVS/Antenna results
+  - [ ] Timing corners (9 corners table)
+  - [ ] Physical layout (GDS screenshot)
+  - [ ] Remaining issues + plan
+- [ ] Viết `schematic_review.md` notes cho presentation
+
+### Ngày 7 — Jun 30 ⏳
+- [ ] **Render chip layout ảnh** (`make render-image`)
+- [ ] Submit **Week 26 weekly report**: https://forms.gle/6839F1Jppxx42yw5A
+
+### Ngày 8 — Jul 1 ⏳
+- [ ] **Rehearsal** — practice 5-7 slides, ~5-7 phút
+- [ ] Dry-run Q&A: DRC strategy, antenna fix, timing closure approach
+- [ ] Final polish slides
+
+### Ngày 9 — Jul 2 ⏳
+- [ ] Backup build nếu có thay đổi last-minute
+- [ ] Final check all artifacts accessible
+- [ ] Confirm Zoom: https://us06web.zoom.us/j/87694732928?pwd=gjUePaAEKDJB2G3f2d4iPIqyYe0qBx.1
+
+### 📊 Timing Violator Analysis (Build #7)
+
+```
+Top 15 setup violators — ALL reg-to-reg, corner max_ss_125C_4v50:
+
+Source: _31363_/Q (fixed_threshold_q) — 13 paths, WNS -0.94ns
+  ├── _31363_ → fanout1423(dlyb_1, 2.26ns) → wire1425(buf_4) 
+  │   → load_slew1424(buf_4) → fanout1418(dlyb_1, 2.84ns) → ...
+  ├── Tổng data path delay: ~13.5ns (3-4 tầng dlyb_1)
+  └── Fanout: fixed_threshold_q → 20 channels × N config bits
+
+Source: _32778_/Q (rst_core_n) — 1 path, -0.03ns
+  ├── _32778_ → fanout985(dlyb_1) → wire986(buf_4) → fanout983(dlyb_1)
+  │   → max_cap984(buf_4) → _16488_(oai21) → fanout880(dlyb_1) → ...
+  └── 5-6 tầng buffer/dlyb, tổng delay > 8ns
+
+Root Cause: dlyb_1 cells (delay buffers) inserted bởi tool để fix hold,
+            nhưng mỗi cell delay 1.5-2.8ns → kill setup ở max_ss corner.
+            Hold margin dư 1.44ns → có thể thay bằng buf_4/buf_8 thường.
+
+Fix strategy:
+  1. set_dont_use gf180mcu_fd_sc_mcu7t5v0__dlyb_*  (ngăn tool dùng delay buffer)
+  2. set_max_fanout 32 [current_design]              (giới hạn fanout mỗi cell)
+  3. Nếu vẫn chưa đủ → pipeline control signals
+```
 
 ---
 
