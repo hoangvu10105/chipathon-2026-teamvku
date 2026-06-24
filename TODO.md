@@ -1,6 +1,6 @@
 # TODO – TeamVKU SSCS Chipathon 2026
 
-> Cập nhật: 2026-06-24 07:30 ICT | **BUILD #8 ĐANG CHẠY** (antenna fix) — DRT iter 3; **9-DAY PLAN ACTIVE** → Schematic Review July 3
+> Cập nhật: 2026-06-24 | **BUILD #8 HOÀN THÀNH** — Setup vio 14, antenna vẫn 48; **BUILD #9** bật post-DRT jumper repair để xử lý ANT.16_ii_ANT.3; **9-DAY PLAN ACTIVE** → Schematic Review July 3
 
 ---
 
@@ -68,8 +68,9 @@ Workshop-slot build: 20 channels instantiated in src/chip_core.sv
 - [x] Đồng bộ config: `DRT_ANTENNA_REPAIR_ITERS: 0` để tránh DRT-0073
 - [x] **Build #6 (reset fix, b15ed43)**: Setup 99→29 ✅, Antenna 40→22 nhưng vẫn fatal (exit 2)
 - [x] **Build #7 (pipeline, 55abd5b)**: Setup 29→15 ✅, nhưng Antenna 22→48 ⚠️ và Slew 149→188 ⚠️
-- [x] **Config antenna fix** — enable `OpenROAD.RepairAntennas` + `Odb.DiodesOnPorts`, vẫn giữ `DRT_ANTENNA_REPAIR_ITERS: 0`
-- [ ] Chạy Build #8 để kiểm tra KLayout antenna: target 48 → 0
+- [x] **Build #8 antenna test** — pre-route `OpenROAD.RepairAntennas` chạy và sửa 29 OpenROAD antenna bằng 31 jumpers, nhưng post-DRT bị skip vì `DRT_ANTENNA_REPAIR_ITERS: 0`; KLayout antenna vẫn 48
+- [x] **Config Build #9** — set `DIODE_ON_PORTS: both`, `DRT_ANTENNA_REPAIR_ITERS: 3`, `DRT_ANTENNA_REPAIR_JUMPER_ONLY: true`
+- [ ] Chạy Build #9 để kiểm tra KLayout antenna: target 48 → 0, không tái phát DRT-0073
 - [ ] Sau khi fix antenna, chạy lại để verify WNS >= 0 ở max_ss
 
 ### 2. Chạy cocotb full test với PDK
@@ -187,11 +188,12 @@ docker run --rm \
 ### 🔴 NGÀY 1 — Jun 24 (HÔM NAY): Antenna + Bắt đầu Timing
 - [x] Phân tích 15 setup violators: root cause = `dlyb_1` delay buffers
 - [x] Kế hoạch 3 ngày đã lập
-- [ ] ⏳ **Build #8 — ĐANG Ở FILL CELLS** (stage ~76/81, ~10-15 phút nữa)
-- [ ] **NGAY KHI BUILD #8 XONG**:
+- [x] **Build #8 đã xong**: setup vio 14, WNS -0.90 ns, KLayout antenna vẫn 48
+- [x] **Kết luận Build #8**: pre-route repair có chạy, nhưng post-DRT repair bị skip vì `DRT_ANTENNA_REPAIR_ITERS: 0`
+- [ ] **Build #9 antenna closure**:
   - [ ] Kiểm tra antenna: target = 0
-  - [ ] Nếu antenna = 0 → PUSH git + commit "Antenna clean"
-  - [ ] Nếu antenna > 0 → fix ngay: thử `DRT_ANTENNA_REPAIR_ITERS: 1` hoặc thêm `set_antenna_rule`
+  - [ ] Nếu antenna = 0 → push git + commit "Antenna clean"
+  - [ ] Nếu antenna > 0 → giảm rủi ro bằng vòng repair riêng: thử `DRT_ANTENNA_REPAIR_ITERS: 1`, tăng jumper margin, hoặc thêm diode có chọn lọc
 - [ ] **SONG SONG: Bắt đầu timing fix** — không đợi Build #8:
   - [ ] Thêm `set_dont_use gf180mcu_fd_sc_mcu7t5v0__dlyb_*` vào SDC
   - [ ] Thêm `set_max_fanout 32 [current_design]` vào SDC

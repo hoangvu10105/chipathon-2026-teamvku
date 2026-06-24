@@ -113,11 +113,14 @@ GRT_RESIZER_HOLD_SLACK_MARGIN: 0.25
 PL_TARGET_DENSITY_PCT: 35
 GRT_ALLOW_CONGESTION: true
 
-# Keep detailed-router antenna repair disabled to avoid the DRT-0073 crash seen
-# in earlier runs. Antenna diode insertion is handled before detailed routing by
-# OpenROAD.RepairAntennas/Odb.DiodesOnPorts.
-DRT_ANTENNA_REPAIR_ITERS: 0
+# Build #8 proved pre-route antenna repair is not enough: OpenROAD repaired
+# global-route antennas, but detailed routing still left KLayout ANT.16_ii_ANT.3
+# markers. Enable post-DRT repair with jumper-only mode to split Metal2 antenna
+# shapes while avoiding extra diode load on already marginal timing paths.
+DIODE_ON_PORTS: both
+DRT_ANTENNA_REPAIR_ITERS: 3
 DRT_ANTENNA_REPAIR_MARGIN: 10 # %
+DRT_ANTENNA_REPAIR_JUMPER_ONLY: true
 
 # PDN - Straps
 PDN_VWIDTH: 5
