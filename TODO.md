@@ -1,6 +1,6 @@
 # TODO – TeamVKU SSCS Chipathon 2026
 
-> Cập nhật: 2026-06-24 | **BUILD #9 FAIL tại detailed routing** — `DIODE_ON_PORTS: both` gây `DRT-1231` pin access; **BUILD #10** tắt port diodes và chỉ chạy post-DRT jumper repair; **9-DAY PLAN ACTIVE** → Schematic Review July 3
+> Cập nhật: 2026-06-24 | **BUILD #10 FAIL tại post-DRT antenna reroute** — `DRT-1231` vẫn xảy ra sau `repair_antennas`; **BUILD #11** tắt post-DRT repair, tăng pre-route GRT antenna margin; **9-DAY PLAN ACTIVE** → Schematic Review July 3
 
 ---
 
@@ -72,7 +72,9 @@ Workshop-slot build: 20 channels instantiated in src/chip_core.sv
 - [x] **Config Build #9** — set `DIODE_ON_PORTS: both`, `DRT_ANTENNA_REPAIR_ITERS: 3`, `DRT_ANTENNA_REPAIR_JUMPER_ONLY: true`
 - [x] **Build #9 result** — fail ở `OpenROAD.DetailedRouting` với `DRT-1231 Pin clkbuf_4_12_0_clk_PAD2CORE/I does not have access point`; nguyên nhân hợp lý nhất là port diode insertion làm hỏng pin access/overlap gần clock pad buffer
 - [x] **Config Build #10** — set `DIODE_ON_PORTS: none`, `DRT_ANTENNA_REPAIR_ITERS: 1`, `DRT_ANTENNA_REPAIR_JUMPER_ONLY: true`
-- [ ] Chạy Build #10 để kiểm tra: detailed route pass, không `DRT-0073`, KLayout antenna target 48 → 0
+- [x] **Build #10 result** — detailed route pass lần đầu, nhưng post-DRT `repair_antennas` tìm 28 antenna rồi reroute fail `DRT-1231`; kết luận: post-DRT repair là blocker
+- [x] **Config Build #11** — `DIODE_ON_PORTS: none`, `DRT_ANTENNA_REPAIR_ITERS: 0`, thêm `GRT_ANTENNA_REPAIR_MARGIN: 50`, `GRT_ANTENNA_REPAIR_JUMPER_ONLY: true`
+- [ ] Chạy Build #11 để kiểm tra: detailed route pass như Build #8, KLayout antenna giảm từ 48 nhờ pre-route over-fix
 - [ ] Sau khi fix antenna, chạy lại để verify WNS >= 0 ở max_ss
 
 ### 2. Chạy cocotb full test với PDK
@@ -193,10 +195,11 @@ docker run --rm \
 - [x] **Build #8 đã xong**: setup vio 14, WNS -0.90 ns, KLayout antenna vẫn 48
 - [x] **Kết luận Build #8**: pre-route repair có chạy, nhưng post-DRT repair bị skip vì `DRT_ANTENNA_REPAIR_ITERS: 0`
 - [x] **Build #9 antenna closure**: fail trước signoff do `DRT-1231`; không dùng được kết quả antenna cuối
-- [ ] **Build #10 antenna closure**:
+- [x] **Build #10 antenna closure**: fail trước signoff do post-DRT reroute `DRT-1231`; không dùng được kết quả antenna cuối
+- [ ] **Build #11 antenna closure**:
   - [ ] Kiểm tra antenna: target = 0
   - [ ] Nếu antenna = 0 → push git + commit "Antenna clean"
-  - [ ] Nếu antenna > 0 → giảm rủi ro bằng vòng repair riêng: thử `DRT_ANTENNA_REPAIR_ITERS: 1`, tăng jumper margin, hoặc thêm diode có chọn lọc
+  - [ ] Nếu antenna > 0 → giữ route pass, phân tích từng net từ `antenna.klayout.json` và chỉ thêm fix chọn lọc
 - [ ] **SONG SONG: Bắt đầu timing fix** — không đợi Build #8:
   - [ ] Thêm `set_dont_use gf180mcu_fd_sc_mcu7t5v0__dlyb_*` vào SDC
   - [ ] Thêm `set_max_fanout 32 [current_design]` vào SDC

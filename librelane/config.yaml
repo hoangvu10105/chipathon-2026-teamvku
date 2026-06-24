@@ -113,11 +113,13 @@ GRT_RESIZER_HOLD_SLACK_MARGIN: 0.25
 PL_TARGET_DENSITY_PCT: 35
 GRT_ALLOW_CONGESTION: true
 
-# Build #9 showed port diode insertion can break detailed routing pin access
-# near the clock pad buffer. Keep port diodes disabled and run a narrow
-# post-DRT jumper repair pass for the remaining KLayout ANT.16_ii_ANT.3 markers.
+# Build #9/#10 showed post-DRT antenna repair can break detailed routing pin
+# access near the clock pad buffer. Keep post-DRT repair disabled and make the
+# pre-route global antenna repair more conservative instead.
 DIODE_ON_PORTS: none
-DRT_ANTENNA_REPAIR_ITERS: 1
+GRT_ANTENNA_REPAIR_MARGIN: 50 # %
+GRT_ANTENNA_REPAIR_JUMPER_ONLY: true
+DRT_ANTENNA_REPAIR_ITERS: 0
 DRT_ANTENNA_REPAIR_MARGIN: 10 # %
 DRT_ANTENNA_REPAIR_JUMPER_ONLY: true
 
