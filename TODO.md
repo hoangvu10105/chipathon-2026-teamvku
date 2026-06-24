@@ -1,6 +1,6 @@
 # TODO – TeamVKU SSCS Chipathon 2026
 
-> Cập nhật: 2026-06-24 | **BUILD #10 FAIL tại post-DRT antenna reroute** — `DRT-1231` vẫn xảy ra sau `repair_antennas`; **BUILD #11** tắt post-DRT repair, tăng pre-route GRT antenna margin; **9-DAY PLAN ACTIVE** → Schematic Review July 3
+> Cập nhật: 2026-06-24 | **BUILD #11 HOÀN THÀNH, vẫn exit 2** — DRC/LVS pass, route pass, nhưng KLayout antenna còn 46 và max_ss setup còn 14; **BUILD #12** cần sửa chọn lọc fanout/dlyb/antenna nets thay vì auto post-DRT repair
 
 ---
 
@@ -74,7 +74,13 @@ Workshop-slot build: 20 channels instantiated in src/chip_core.sv
 - [x] **Config Build #10** — set `DIODE_ON_PORTS: none`, `DRT_ANTENNA_REPAIR_ITERS: 1`, `DRT_ANTENNA_REPAIR_JUMPER_ONLY: true`
 - [x] **Build #10 result** — detailed route pass lần đầu, nhưng post-DRT `repair_antennas` tìm 28 antenna rồi reroute fail `DRT-1231`; kết luận: post-DRT repair là blocker
 - [x] **Config Build #11** — `DIODE_ON_PORTS: none`, `DRT_ANTENNA_REPAIR_ITERS: 0`, thêm `GRT_ANTENNA_REPAIR_MARGIN: 50`, `GRT_ANTENNA_REPAIR_JUMPER_ONLY: true`
-- [ ] Chạy Build #11 để kiểm tra: detailed route pass như Build #8, KLayout antenna giảm từ 48 nhờ pre-route over-fix
+- [x] **Build #11 result (68e33f2, RUN_2026-06-24_11-15-22)**:
+  - DRC Magic: 0, KLayout DRC: 0, LVS: pass
+  - KLayout antenna: 48 → 46 errors, 23 pins / 23 nets, rule `ANT.16_ii_ANT.3`
+  - Timing max_ss: WNS -0.8849 ns, TNS -7.9415 ns, setup vio 14
+  - Electrical: max slew 177, max cap 45, max fanout 8
+  - Conclusion: stronger pre-route repair helps only slightly; post-DRT repair causes `DRT-1231`, so next fix must be selective net/topology cleanup
+- [ ] Build #12: sửa chọn lọc các fanout/dlyb antenna nets và timing path, không bật post-DRT auto repair
 - [ ] Sau khi fix antenna, chạy lại để verify WNS >= 0 ở max_ss
 
 ### 2. Chạy cocotb full test với PDK
@@ -196,10 +202,12 @@ docker run --rm \
 - [x] **Kết luận Build #8**: pre-route repair có chạy, nhưng post-DRT repair bị skip vì `DRT_ANTENNA_REPAIR_ITERS: 0`
 - [x] **Build #9 antenna closure**: fail trước signoff do `DRT-1231`; không dùng được kết quả antenna cuối
 - [x] **Build #10 antenna closure**: fail trước signoff do post-DRT reroute `DRT-1231`; không dùng được kết quả antenna cuối
-- [ ] **Build #11 antenna closure**:
-  - [ ] Kiểm tra antenna: target = 0
-  - [ ] Nếu antenna = 0 → push git + commit "Antenna clean"
-  - [ ] Nếu antenna > 0 → giữ route pass, phân tích từng net từ `antenna.klayout.json` và chỉ thêm fix chọn lọc
+- [x] **Build #11 antenna closure**: route pass nhưng antenna vẫn 46; OpenROAD pre-route summary chỉ ra các net Metal2/fanout/dlyb là nhóm cần xử lý
+- [ ] **Build #12 antenna/timing closure**:
+  - [ ] Không dùng `DRT_ANTENNA_REPAIR_ITERS > 0` vì đã gây `DRT-1231`
+  - [ ] Phân tích các net fanout/dlyb còn ratio cao, ví dụ `net1426`, `net2005`, `net1389`, `net1811`, `i_chip_core...x_in[1]`
+  - [ ] Giảm long Metal2 fanout bằng RTL/SDC/placement constraints hoặc buffer topology chọn lọc
+  - [ ] Sau khi route pass, target antenna 46 → 0 và setup 14 → 0
 - [ ] **SONG SONG: Bắt đầu timing fix** — không đợi Build #8:
   - [ ] Thêm `set_dont_use gf180mcu_fd_sc_mcu7t5v0__dlyb_*` vào SDC
   - [ ] Thêm `set_max_fanout 32 [current_design]` vào SDC
