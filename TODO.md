@@ -1,6 +1,6 @@
 # TODO – TeamVKU SSCS Chipathon 2026
 
-> Cập nhật: 2026-06-23 16:56 ICT | **BUILD #5 HOÀN THÀNH** — SS Slew: 39 (↓98.4%), Magic/KLayout DRC + LVS: 0, 40 KLayout antenna deferred, 99 setup vio ở `max_ss_125C`
+> Cập nhật: 2026-06-24 01:10 ICT | **BUILD #6 + #7 HOÀN THÀNH** — Setup vio: 99→29→15, Antenna vẫn fatal (22/48), cần fix antenna config để pass exit code 2
 
 ---
 
@@ -66,8 +66,10 @@ Workshop-slot build: 20 channels instantiated in src/chip_core.sv
 - [x] Xác định root cause: reset synchronizer output (`rst_core_n`) bị dùng như reset tree high-fanout, tạo ~80 reg-to-reg setup paths qua delay buffers
 - [x] Sửa RTL: dùng `rst_n` để clear state bất đồng bộ, dùng `rst_core_n` chỉ làm synchronized release/enable (`core_en`)
 - [x] Đồng bộ config: `DRT_ANTENNA_REPAIR_ITERS: 0` và skip `OpenROAD.RepairAntennas`
-- [ ] Chạy lại full LibreLane/OpenROAD và kiểm tra `max_ss_125C_4v50`: WNS >= 0, TNS = 0, setup violations = 0
-- [ ] Đây là signoff corner - cần fix trước submission
+- [x] **Build #6 (reset fix, b15ed43)**: Setup 99→29 ✅, Antenna 40→22 nhưng vẫn fatal (exit 2)
+- [x] **Build #7 (pipeline, 55abd5b)**: Setup 29→15 ✅, nhưng Antenna 22→48 ⚠️ và Slew 149→188 ⚠️
+- [ ] **Cần fix KLayout antenna errors** — đây là blocker chính (exit code 2), cần enable `RepairAntennas`/`Odb.DiodesOnPorts` hoặc thêm antenna diodes
+- [ ] Sau khi fix antenna, chạy lại để verify WNS >= 0 ở max_ss
 
 ### 2. Chạy cocotb full test với PDK
 - [ ] Chạy SFE testbench với GDS PDK (không chỉ verilator)
@@ -107,16 +109,73 @@ docker run --rm \
 
 ---
 
+## 📊 BUILD #6 — Reset Fix (b15ed43) — RUN_2026-06-23_18-21-55
+
+> Commit: `b15ed43 Fix reset release timing path` | Runtime: ~2h | Exit: **2** ❌ (22 antenna)
+
+| Corner | Slew | Fanout | Cap | Setup Vio | WNS | TNS |
+|--------|------|--------|-----|-----------|-----|-----|
+| **nom_tt** | 0 ✅ | 10 | 49 | 0 ✅ | 0.0 | 0.0 |
+| **nom_ss** | 22 | 10 | 49 | 0 ✅ | 0.0 | 0.0 |
+| **nom_ff** | 0 ✅ | 10 | 49 | 0 ✅ | 0.0 | 0.0 |
+| **max_ss** | 149 ⚠️ | 10 | 49 | **29** ⚠️ | **-0.84** | **-7.38** |
+| **max_ff** | 0 ✅ | 10 | 49 | 0 ✅ | 0.0 | 0.0 |
+
+| Check | Result |
+|-------|--------|
+| Magic DRC | **0** ✅ |
+| KLayout DRC | **0** ✅ |
+| Netgen LVS | **0 errors** ✅ |
+| KLayout Antenna | **22** ❌ (fatal) |
+
+### Cải thiện so với Build #5
+- **Setup violations max_ss: 99 → 29 (-70.7%)** — reset async clear giúp giảm timing paths qua reset tree
+- **Antenna: 40 → 22 (-45%)** — nhờ `DRT_ANTENNA_REPAIR_ITERS: 0` skip internal repair
+- Vẫn fatal do 22 antenna errors — cần fix config antenna diodes
+
+---
+
+## 📊 BUILD #7 — Pipeline Channel (55abd5b) — RUN_2026-06-23_19-35-12
+
+> Commit: `55abd5b Pipeline channel fire decision to break critical datapath` | Runtime: ~2h | Exit: **2** ❌ (48 antenna)
+
+| Corner | Slew | Fanout | Cap | Setup Vio | WNS | TNS |
+|--------|------|--------|-----|-----------|-----|-----|
+| **nom_tt** | 0 ✅ | 8 | 44 | 0 ✅ | 0.0 | 0.0 |
+| **nom_ss** | 4 | 8 | 44 | 0 ✅ | 0.0 | 0.0 |
+| **nom_ff** | 0 ✅ | 8 | 44 | 0 ✅ | 0.0 | 0.0 |
+| **max_ss** | 188 ⚠️ | 8 | 45 | **15** ⚠️ | **-0.94** | **-8.17** |
+| **max_ff** | 0 ✅ | 8 | 45 | 0 ✅ | 0.0 | 0.0 |
+
+| Check | Result |
+|-------|--------|
+| Magic DRC | **0** ✅ |
+| KLayout DRC | **0** ✅ |
+| Netgen LVS | **0 errors** ✅ |
+| KLayout Antenna | **48** ❌ (fatal) |
+
+### Phân tích Pipeline change
+- ✅ **Setup 29→15 (-48%)** — pipeline regs cắt critical path hiệu quả
+- ✅ **Fanout 10→8, Cap 49→45** — ít load hơn nhờ register stage
+- ⚠️ **WNS -0.84→-0.94** — pipeline thêm 1 cycle nhưng combinational delay vẫn lớn
+- ❌ **Antenna 22→48** — thêm register tăng số net → nhiều antenna violation hơn
+- ❌ **Slew 149→188** — pipeline reg drive strength không đủ cho fanout
+
+---
+
 ## 📊 So sánh Build Metrics qua các lần
 
-| Corner | Build trước (grtrepair45) | **Build #5** | Thay đổi |
-|--------|---------------------------|-------------|----------|
-| TT Slew | 107 | **0** | -100% |
-| **SS Slew** | **2451** ⚠️ | **39** 🎉 | **-98.4%** |
-| FF Slew | 35 | **0** | -100% |
-| DRC | 0 ✅ | 0 ✅ | = |
-| LVS | 0 ✅ | 0 ✅ | = |
-| Antenna | - | 40 ⚠️ | deferred |
+| Corner | Build #4 (grtrepair) | Build #5 | **B#6 (reset)** | **B#7 (pipe)** |
+|--------|---------------------|----------|-----------------|-----------------|
+| TT Slew | 107 | **0** | **0** | **0** |
+| SS Slew | 2451 | **39** | 22 | 4 |
+| FF Slew | 35 | **0** | **0** | **0** |
+| **max_ss Setup Vio** | - | **99** | **29** ↓ | **15** ↓ |
+| **max_ss WNS** | - | - | **-0.84** | **-0.94** |
+| DRC | 0 ✅ | 0 ✅ | 0 ✅ | 0 ✅ |
+| LVS | 0 ✅ | 0 ✅ | 0 ✅ | 0 ✅ |
+| **Antenna** | - | 40 ⚠️ | **22** ❌ | **48** ❌ |
+| Exit Code | ? | 2 | 2 | 2 |
 
 ---
 
