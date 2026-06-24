@@ -5,8 +5,6 @@ meta:
     # The workshop padring uses physical pad cells, so top-level PAD
     # ports are intentionally not placed as standalone IO pins.
     OpenROAD.GlobalPlacement: OpenROAD.GlobalPlacementSkipIO
-    OpenROAD.RepairAntennas: null
-    Odb.DiodesOnPorts: null
 
     # Disable KLayout DRC
     #KLayout.DRC: null
@@ -115,8 +113,9 @@ GRT_RESIZER_HOLD_SLACK_MARGIN: 0.25
 PL_TARGET_DENSITY_PCT: 35
 GRT_ALLOW_CONGESTION: true
 
-# Skip internal DRT antenna repair. The current routed build keeps remaining
-# KLayout antenna items deferred for review; DRT repair triggers DRT-0073.
+# Keep detailed-router antenna repair disabled to avoid the DRT-0073 crash seen
+# in earlier runs. Antenna diode insertion is handled before detailed routing by
+# OpenROAD.RepairAntennas/Odb.DiodesOnPorts.
 DRT_ANTENNA_REPAIR_ITERS: 0
 DRT_ANTENNA_REPAIR_MARGIN: 10 # %
 

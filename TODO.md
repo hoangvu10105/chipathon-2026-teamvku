@@ -65,10 +65,11 @@ Workshop-slot build: 20 channels instantiated in src/chip_core.sv
 - [x] Mở timing report cho `max_ss_125C_4v50` và liệt kê top violating paths
 - [x] Xác định root cause: reset synchronizer output (`rst_core_n`) bị dùng như reset tree high-fanout, tạo ~80 reg-to-reg setup paths qua delay buffers
 - [x] Sửa RTL: dùng `rst_n` để clear state bất đồng bộ, dùng `rst_core_n` chỉ làm synchronized release/enable (`core_en`)
-- [x] Đồng bộ config: `DRT_ANTENNA_REPAIR_ITERS: 0` và skip `OpenROAD.RepairAntennas`
+- [x] Đồng bộ config: `DRT_ANTENNA_REPAIR_ITERS: 0` để tránh DRT-0073
 - [x] **Build #6 (reset fix, b15ed43)**: Setup 99→29 ✅, Antenna 40→22 nhưng vẫn fatal (exit 2)
 - [x] **Build #7 (pipeline, 55abd5b)**: Setup 29→15 ✅, nhưng Antenna 22→48 ⚠️ và Slew 149→188 ⚠️
-- [ ] **Cần fix KLayout antenna errors** — đây là blocker chính (exit code 2), cần enable `RepairAntennas`/`Odb.DiodesOnPorts` hoặc thêm antenna diodes
+- [x] **Config antenna fix** — enable `OpenROAD.RepairAntennas` + `Odb.DiodesOnPorts`, vẫn giữ `DRT_ANTENNA_REPAIR_ITERS: 0`
+- [ ] Chạy Build #8 để kiểm tra KLayout antenna: target 48 → 0
 - [ ] Sau khi fix antenna, chạy lại để verify WNS >= 0 ở max_ss
 
 ### 2. Chạy cocotb full test với PDK
