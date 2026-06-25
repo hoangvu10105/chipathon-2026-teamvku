@@ -39,13 +39,12 @@ if { [info exists ::env(MAX_CAPACITANCE_CONSTRAINT)] } {
     set_max_capacitance $::env(MAX_CAPACITANCE_CONSTRAINT) [current_design]
 }
 
-# ── Build #12: Prevent delay buffers ──────────────────────────
-# dlyb_* cells add ~2ns delay per stage and create antenna-prone
-# long Metal2 routes. Ban them so the resizer uses buf_4 / buf_8
-# which are faster, drive stronger, and route shorter.
-# Pass cell names directly to avoid get_lib_cells collection issues.
-set_dont_use [list gf180mcu_fd_sc_mcu7t5v0__dlyb_1 gf180mcu_fd_sc_mcu7t5v0__dlyb_2 gf180mcu_fd_sc_mcu7t5v0__dlyb_4 gf180mcu_fd_sc_mcu7t5v0__dlyb_8]
-puts "\[INFO] Set dont_use on dlyb_1/2/4/8 cells"
+# Build #12: Ban dlyb_* delay buffers. OpenSTA in this flow has
+# strict set_dont_use syntax. Try all known forms with catch.
+catch {set_dont_use [get_lib_cells {gf180mcu_fd_sc_mcu7t5v0__dlyb_1 gf180mcu_fd_sc_mcu7t5v0__dlyb_2 gf180mcu_fd_sc_mcu7t5v0__dlyb_4 gf180mcu_fd_sc_mcu7t5v0__dlyb_8}]}
+catch {set_dont_use_cells gf180mcu_fd_sc_mcu7t5v0__dlyb_1 gf180mcu_fd_sc_mcu7t5v0__dlyb_2 gf180mcu_fd_sc_mcu7t5v0__dlyb_4 gf180mcu_fd_sc_mcu7t5v0__dlyb_8}
+catch {foreach c {gf180mcu_fd_sc_mcu7t5v0__dlyb_1 gf180mcu_fd_sc_mcu7t5v0__dlyb_2 gf180mcu_fd_sc_mcu7t5v0__dlyb_4 gf180mcu_fd_sc_mcu7t5v0__dlyb_8} {set_dont_use [get_lib_cells $c]}}
+puts "\[INFO\] Build12: dont_use on dlyb_1/2/4/8 attempted"
 
 set clocks [get_clocks $clock_port]
 
