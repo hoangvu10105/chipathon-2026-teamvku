@@ -43,9 +43,10 @@ if { [info exists ::env(MAX_CAPACITANCE_CONSTRAINT)] } {
 # dlyb_* cells add ~2ns delay per stage and create antenna-prone
 # long Metal2 routes. Ban them so the resizer uses buf_4 / buf_8
 # which are faster, drive stronger, and route shorter.
+# Note: This OpenSTA version uses set_dont_use_cells (not set_dont_use)
 set dlyb_count 0
 foreach cell [get_lib_cells -quiet gf180mcu_fd_sc_mcu7t5v0__dlyb_*] {
-    set_dont_use $cell
+    set_dont_use_cells $cell
     incr dlyb_count
 }
 puts "\[INFO] Set dont_use on $dlyb_count dlyb cells"
