@@ -43,13 +43,12 @@ if { [info exists ::env(MAX_CAPACITANCE_CONSTRAINT)] } {
 # dlyb_* cells add ~2ns delay per stage and create antenna-prone
 # long Metal2 routes. Ban them so the resizer uses buf_4 / buf_8
 # which are faster, drive stronger, and route shorter.
-if { [catch {get_lib_cells gf180mcu_fd_sc_mcu7t5v0__dlyb_*}] } {
-    puts "\[INFO] No dlyb cells found in library — skipping dont_use"
-} else {
-    set dlyb_cells [get_lib_cells gf180mcu_fd_sc_mcu7t5v0__dlyb_*]
-    set_dont_use $dlyb_cells
-    puts "\[INFO] Set dont_use on [llength $dlyb_cells] dlyb cells"
+set dlyb_count 0
+foreach cell [get_lib_cells -quiet gf180mcu_fd_sc_mcu7t5v0__dlyb_*] {
+    set_dont_use $cell
+    incr dlyb_count
 }
+puts "\[INFO] Set dont_use on $dlyb_count dlyb cells"
 
 set clocks [get_clocks $clock_port]
 
