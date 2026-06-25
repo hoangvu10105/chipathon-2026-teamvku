@@ -157,15 +157,12 @@ ERROR_ON_MAGIC_DRC: False
 # GF180 physical flow to proceed to placement/routing/signoff.
 ERROR_ON_SYNTH_CHECKS: False
 
-# Build #12: Prevent dlyb_* delay buffers at synthesis level.
-# These cells create ~2ns delay each and antenna-prone long Metal2
-# routes. Combined with set_dont_use in SDC (catches P&R/resizer),
-# this ensures synthesis also avoids them from the start.
-SYNTH_DONT_USE:
-  - gf180mcu_fd_sc_mcu7t5v0__dlyb_1
-  - gf180mcu_fd_sc_mcu7t5v0__dlyb_2
-  - gf180mcu_fd_sc_mcu7t5v0__dlyb_4
-  - gf180mcu_fd_sc_mcu7t5v0__dlyb_8
+# Build #12: SDC set_dont_use on dlyb_* cells (see chip_top.sdc)
+# prevents OpenROAD resizer from using delay buffers during P&R.
+# SYNTH_DONT_USE is not supported by this LibreLane version;
+# synthesis-level exclusion is deferred. The resizer is the main
+# source of dlyb insertion after placement, so SDC dont_use should
+# still eliminate the majority.
 
 # Prevent false positive DRC errors in I/O cells
 MAGIC_GDS_FLATGLOB:
