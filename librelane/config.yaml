@@ -108,15 +108,18 @@ MAX_FANOUT_CONSTRAINT: 6
 PL_RESIZER_HOLD_SLACK_MARGIN: 0.35
 GRT_RESIZER_HOLD_SLACK_MARGIN: 0.25
 
-# Increase for more logic
-# on your die
-PL_TARGET_DENSITY_PCT: 35
+# Build #12 v7: Increase density target from 35 to 40
+# to give more room for buffer insertion and timing repair.
+PL_TARGET_DENSITY_PCT: 40
 GRT_ALLOW_CONGESTION: true
 
-# Build #9/#10 showed post-DRT antenna repair can break detailed routing pin
-# access near the clock pad buffer. Keep post-DRT repair disabled and make the
-# pre-route global antenna repair more conservative instead.
+# Build #12 v7: Fix 68 KLayout antenna errors from v6.
+# Post-DRT antenna repair (B9/B10) broke clock pad routing,
+# so use aggressive global-route antenna iterations instead.
+# 20 antenna-focused GRT iterations + 100% margin to clear
+# antenna violations without touching post-DRT routing.
 DIODE_ON_PORTS: none
+GRT_ANTENNA_ITERS: 20
 GRT_ANTENNA_REPAIR_MARGIN: 100 # %
 GRT_ANTENNA_REPAIR_JUMPER_ONLY: true
 DRT_ANTENNA_REPAIR_ITERS: 0
@@ -259,7 +262,9 @@ PDN_CFG: dir::pdn_cfg.tcl
 # Experimental post-global-route repair pass to reduce max slew/cap/fanout warnings.
 RUN_POST_GRT_DESIGN_REPAIR: true
 RUN_POST_GRT_RESIZER_TIMING: true
-GRT_RESIZER_SETUP_SLACK_MARGIN: 0.05
+# Build #12 v7: Increase setup slack margin 0.05 -> 0.10
+# for more aggressive timing closure in post-GRT resizer.
+GRT_RESIZER_SETUP_SLACK_MARGIN: 0.10
 GRT_RESIZER_SETUP_MAX_BUFFER_PCT: 30
 GRT_RESIZER_HOLD_MAX_BUFFER_PCT: 30
 GRT_RESIZER_ALLOW_SETUP_VIOS: false
