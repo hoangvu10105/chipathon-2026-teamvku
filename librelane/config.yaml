@@ -108,18 +108,16 @@ MAX_FANOUT_CONSTRAINT: 6
 PL_RESIZER_HOLD_SLACK_MARGIN: 0.35
 GRT_RESIZER_HOLD_SLACK_MARGIN: 0.25
 
-# Build #12 v7: Increase density target from 35 to 40
-# to give more room for buffer insertion and timing repair.
-PL_TARGET_DENSITY_PCT: 40
+# Build #12 v8: v7 density 40 made timing worse (TNS doubled).
+# Drop to 30 to give maximum room for buffer insertion + timing.
+PL_TARGET_DENSITY_PCT: 30
 GRT_ALLOW_CONGESTION: true
 
-# Build #12 v7: Fix 68 KLayout antenna errors from v6.
-# Post-DRT antenna repair (B9/B10) broke clock pad routing,
-# so use aggressive global-route antenna iterations instead.
-# 20 antenna-focused GRT iterations + 100% margin to clear
-# antenna violations without touching post-DRT routing.
+# Build #12 v8: v7 reduced antenna 68->44 but not zero.
+# Bump GRT_ANTENNA_ITERS 20->30 to push toward zero.
+# Post-DRT repair still disabled (B9/B10 clock pad issue).
 DIODE_ON_PORTS: none
-GRT_ANTENNA_ITERS: 20
+GRT_ANTENNA_ITERS: 30
 GRT_ANTENNA_REPAIR_MARGIN: 100 # %
 GRT_ANTENNA_REPAIR_JUMPER_ONLY: true
 DRT_ANTENNA_REPAIR_ITERS: 0
